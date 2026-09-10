@@ -1,0 +1,912 @@
+<title>Jag's Kitchen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,300;1,400;1,600&family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600;6..12,700&family=Courier+Prime:wght@400;700&display=swap">
+
+<style>
+/* ── Tokens ───────────────────────────────────────────────── */
+:root {
+  --bg:            #F3EDE3;
+  --surface:       #FEFCF8;
+  --surface-up:    #FFFFFF;
+  --text:          #1C1109;
+  --text-2:        #7A6555;
+  --accent:        #B84C22;
+  --accent-h:      #9A3E1A;
+  --accent-lt:     #F2E0D8;
+  --border:        #DDD4C6;
+  --chip:          #EAE2D8;
+  --chip-t:        #5A4A3A;
+  --tag-bg:        #EBE3D9;
+  --tag-t:         #6A5848;
+  --overlay:       rgba(15,8,3,.55);
+  --sh:            0 2px 12px rgba(28,17,9,.10);
+  --sh-up:         0 8px 32px rgba(28,17,9,.18);
+  --r:             10px;
+
+  /* cuisine band colors */
+  --c-italian:     #3A5225;
+  --c-indian:      #8B6200;
+  --c-mexican:     #7A1E14;
+  --c-japanese:    #1E3A48;
+  --c-french:      #243350;
+  --c-middle-eastern: #5A3020;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:            #130C07;
+    --surface:       #1C1209;
+    --surface-up:    #251810;
+    --text:          #F0E6D8;
+    --text-2:        #9A806A;
+    --accent:        #D05A30;
+    --accent-h:      #E06A40;
+    --accent-lt:     #3A1E12;
+    --border:        #2E2015;
+    --chip:          #271A10;
+    --chip-t:        #B89880;
+    --tag-bg:        #231610;
+    --tag-t:         #A08070;
+    --overlay:       rgba(0,0,0,.72);
+    --sh:            0 2px 12px rgba(0,0,0,.35);
+    --sh-up:         0 8px 36px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:            #130C07;
+  --surface:       #1C1209;
+  --surface-up:    #251810;
+  --text:          #F0E6D8;
+  --text-2:        #9A806A;
+  --accent:        #D05A30;
+  --accent-h:      #E06A40;
+  --accent-lt:     #3A1E12;
+  --border:        #2E2015;
+  --chip:          #271A10;
+  --chip-t:        #B89880;
+  --tag-bg:        #231610;
+  --tag-t:         #A08070;
+  --overlay:       rgba(0,0,0,.72);
+  --sh:            0 2px 12px rgba(0,0,0,.35);
+  --sh-up:         0 8px 36px rgba(0,0,0,.55);
+}
+
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Nunito Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.65;
+  min-height: 100dvh;
+}
+
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; border: none; background: none; color: inherit; font: inherit; }
+ul, ol { list-style: none; }
+img { max-width: 100%; display: block; }
+
+/* ── Layout wrapper ───────────────────────────────────────── */
+.wrap {
+  max-width: 1160px;
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+.site-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding-block: 14px;
+}
+
+.site-name {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.75rem;
+  letter-spacing: -.01em;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.site-name em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.search-wrap {
+  flex: 1;
+  position: relative;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-2);
+  pointer-events: none;
+  display: flex;
+}
+
+.search-input {
+  width: 100%;
+  padding: 9px 14px 9px 38px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: .9rem;
+  transition: border-color .15s;
+  outline: none;
+}
+
+.search-input::placeholder { color: var(--text-2); }
+.search-input:focus { border-color: var(--accent); }
+
+.recipe-count {
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: .8rem;
+  color: var(--text-2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Filter bar ───────────────────────────────────────────── */
+.filter-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding-block: 10px;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filters::-webkit-scrollbar { display: none; }
+
+.chip {
+  padding: 5px 14px;
+  border-radius: 100px;
+  background: var(--chip);
+  color: var(--chip-t);
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+  border: 1.5px solid transparent;
+}
+
+.chip:hover { background: var(--accent-lt); color: var(--accent); }
+.chip.active { background: var(--accent); color: #fff; }
+
+/* ── Grid ─────────────────────────────────────────────────── */
+main {
+  padding-block: 36px 60px;
+}
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 24px;
+  color: var(--text-2);
+}
+
+.empty-state p:first-child {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+}
+
+.empty-state p:last-child {
+  font-size: .9rem;
+}
+
+/* ── Card ─────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .18s, box-shadow .18s;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--sh-up);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.card-band {
+  height: 58px;
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-band::before {
+  content: attr(data-cuisine);
+  position: absolute;
+  right: -4px;
+  bottom: -8px;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 3.2rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.12);
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+  letter-spacing: -.02em;
+}
+
+.card-cuisine-label {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.9);
+  font-family: 'Nunito Sans', sans-serif;
+}
+
+.card-body {
+  padding: 18px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.card-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: .78rem;
+  color: var(--text-2);
+}
+
+.meta-sep { opacity: .4; }
+
+.card-desc {
+  font-size: .88rem;
+  color: var(--text-2);
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.tag {
+  padding: 2px 9px;
+  border-radius: 100px;
+  background: var(--tag-bg);
+  color: var(--tag-t);
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+/* ── Modal ────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-inline: 16px;
+  padding-bottom: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-card {
+  background: var(--surface-up);
+  border-radius: 14px 14px 0 0;
+  width: 100%;
+  max-width: 760px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(40px);
+  transition: transform .25s cubic-bezier(.22,.61,.36,1);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.modal-overlay.open .modal-card {
+  transform: translateY(0);
+}
+
+.modal-band {
+  height: 72px;
+  display: flex;
+  align-items: flex-end;
+  padding: 14px 24px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.modal-band::before {
+  content: attr(data-cuisine);
+  position: absolute;
+  right: 0;
+  bottom: -10px;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 5rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.10);
+  line-height: 1;
+  user-select: none;
+  letter-spacing: -.02em;
+}
+
+.modal-cuisine-label {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.88);
+}
+
+.modal-inner {
+  padding: 24px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.modal-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 2.2rem;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.modal-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: .85rem;
+  color: var(--text-2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding-block: 14px;
+}
+
+.modal-stats strong { color: var(--text); }
+
+.modal-desc {
+  font-size: .95rem;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+
+.modal-cols {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.col-head {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--accent);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid var(--accent-lt);
+}
+
+.ingredient-list li {
+  padding: 6px 0;
+  font-size: .9rem;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.ingredient-list li:last-child { border-bottom: none; }
+
+.instruction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  font-size: .9rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.step-num {
+  font-family: 'Courier Prime', monospace;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--accent);
+  padding-top: 3px;
+}
+
+.modal-notes {
+  background: var(--accent-lt);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+  padding: 14px 16px;
+  font-size: .88rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.modal-notes strong {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1rem;
+  display: block;
+  margin-bottom: 4px;
+  color: var(--accent);
+}
+
+.modal-close-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 20px 0;
+  flex-shrink: 0;
+}
+
+.modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--text-2);
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+  flex-shrink: 0;
+}
+
+.modal-close:hover { background: var(--accent-lt); color: var(--accent); }
+.modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .header-inner { flex-wrap: wrap; gap: 12px; }
+  .search-wrap { max-width: 100%; order: 3; flex-basis: 100%; }
+  .recipe-count { display: none; }
+  .site-name { font-size: 1.5rem; }
+
+  .modal-cols {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .modal-inner { padding: 20px 18px 36px; }
+  .modal-title { font-size: 1.7rem; }
+}
+
+/* ── Loading ──────────────────────────────────────────────── */
+.loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 24px;
+  color: var(--text-2);
+  font-family: 'Courier Prime', monospace;
+  font-size: .9rem;
+  letter-spacing: .05em;
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .card, .modal-overlay, .modal-card { transition: none; }
+}
+</style>
+
+<!-- Site Header -->
+<header class="site-header">
+  <div class="wrap header-inner">
+    <h1 class="site-name">Jag<em>'</em>s Kitchen</h1>
+    <div class="search-wrap">
+      <span class="search-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+      </span>
+      <input
+        class="search-input"
+        type="search"
+        id="search"
+        placeholder="Search recipes, ingredients…"
+        aria-label="Search recipes"
+      >
+    </div>
+    <span class="recipe-count" id="count">– recipes</span>
+  </div>
+</header>
+
+<!-- Cuisine Filters -->
+<nav class="filter-bar" aria-label="Filter by cuisine">
+  <div class="wrap">
+    <div class="filters" id="filters" role="list">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</nav>
+
+<!-- Recipe Grid -->
+<main>
+  <div class="wrap">
+    <div class="recipe-grid" id="grid" role="list">
+      <div class="loading">Loading recipes…</div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-card" id="modal-card">
+    <div class="modal-close-row">
+      <button class="modal-close" id="modal-close" aria-label="Close recipe">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-band" id="modal-band" data-cuisine="">
+      <span class="modal-cuisine-label" id="modal-cuisine"></span>
+    </div>
+    <div class="modal-inner">
+      <h2 class="modal-title" id="modal-title"></h2>
+      <div class="modal-stats" id="modal-stats"></div>
+      <p class="modal-desc" id="modal-desc"></p>
+      <div class="modal-cols">
+        <div>
+          <div class="col-head">Ingredients</div>
+          <ul class="ingredient-list" id="modal-ingredients"></ul>
+        </div>
+        <div>
+          <div class="col-head">Instructions</div>
+          <ol class="instruction-list" id="modal-steps"></ol>
+        </div>
+      </div>
+      <div class="modal-notes" id="modal-notes" hidden>
+        <strong>Cook's note</strong>
+        <span id="modal-notes-text"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Cuisine colors ──────────────────────────────────────────
+const CUISINE_COLORS = {
+  'Italian':        '#3A5225',
+  'Indian':         '#8B6200',
+  'Mexican':        '#7A1E14',
+  'Japanese':       '#1E3A48',
+  'French':         '#243350',
+  'Middle Eastern': '#5A3020',
+};
+
+const defaultColor = '#3A3A3A';
+
+// ── Embedded recipe data (fallback when fetch isn't available) ─
+const EMBEDDED = [
+  {
+    "id": 1, "title": "Spaghetti Carbonara", "cuisine": "Italian", "category": "Pasta",
+    "prepTime": 10, "cookTime": 20, "servings": 4, "difficulty": "Medium",
+    "tags": ["pasta", "eggs", "cheese", "quick"],
+    "description": "The real Roman carbonara — no cream, no shortcuts. Guanciale rendered slow, eggs tempered off heat, Pecorino folded in to form a glossy, black-peppered silk.",
+    "ingredients": ["400g spaghetti","200g guanciale (or pancetta)","3 large eggs + 2 yolks","100g Pecorino Romano, finely grated","50g Parmigiano-Reggiano, grated","Plenty of freshly cracked black pepper","Kosher salt, for pasta water"],
+    "instructions": ["Bring a large pot of heavily salted water to a rolling boil.","Cut guanciale into lardons ~1cm thick. Start in a cold pan over medium-low heat so the fat renders slowly, about 8 minutes, until crispy at edges but still chewy inside. Remove from heat; keep warm.","In a bowl, whisk eggs, yolks, and three-quarters of the cheese. Season aggressively with black pepper.","Cook spaghetti until 90 seconds shy of al dente. Reserve 1 full cup of starchy pasta water before draining.","Add drained pasta to the guanciale pan off the heat. Toss to coat every strand in the rendered fat.","Pour the egg mixture over the pasta, tossing constantly. Add pasta water a splash at a time, tossing until a glossy, creamy sauce coats the pasta without scrambling. Work quickly.","Serve immediately on warm plates. Top with remaining cheese and a final crack of pepper."],
+    "notes": "Off-heat is non-negotiable. The residual heat of the pasta finishes the eggs gently. If your sauce tightens up, a splash more pasta water loosens it instantly."
+  },
+  {
+    "id": 2, "title": "Chicken Tikka Masala", "cuisine": "Indian", "category": "Curry",
+    "prepTime": 30, "cookTime": 40, "servings": 4, "difficulty": "Medium",
+    "tags": ["chicken", "curry", "tomato", "spice", "dinner"],
+    "description": "Char-edged chicken tikka folded into a silky tomato-cream masala built on toasted whole spices. The kind of dish that fills the kitchen with warmth before you've even sat down.",
+    "ingredients": ["700g boneless chicken thighs, cut into 4cm pieces","Marinade: 180g yogurt, 2 tsp garam masala, 1½ tsp cumin, 1 tsp turmeric, 1 tsp Kashmiri chili powder, 1 tsp salt, 2 tbsp oil","3 tbsp ghee, 1 large white onion finely diced","6 garlic cloves minced, 25g fresh ginger grated","2 tsp cumin seeds, 1 tsp coriander seeds (toasted and ground)","1 tsp turmeric, 2 tsp garam masala, 1½ tsp Kashmiri chili powder","400g can crushed tomatoes","150ml heavy cream","Salt, fresh cilantro to finish"],
+    "instructions": ["Mix marinade ingredients with chicken. Cover and refrigerate minimum 4 hours, ideally overnight.","Broil or grill chicken on highest setting until deeply charred in spots, 8–10 minutes per side. Set aside.","Melt ghee in a heavy-bottomed pan over medium heat. Add cumin seeds and let them splutter 30 seconds.","Add onion with a pinch of salt. Cook 12–15 minutes stirring often until deeply golden — don't rush this.","Add garlic and ginger. Cook 2 minutes until fragrant.","Add ground spices. Cook 1 minute, stirring, until the mixture smells toasty and darkens slightly.","Pour in crushed tomatoes. Cook uncovered 15 minutes until oil separates and sauce is thick and deep red.","Add charred chicken. Stir to coat. Pour in cream. Simmer 8 minutes. Adjust salt. Finish with torn cilantro."],
+    "notes": "Kashmiri chili gives the color without excessive heat. The char on the chicken is flavor — don't skip the broil step."
+  },
+  {
+    "id": 3, "title": "Baja Fish Tacos", "cuisine": "Mexican", "category": "Tacos",
+    "prepTime": 25, "cookTime": 15, "servings": 4, "difficulty": "Easy",
+    "tags": ["fish", "tacos", "beer batter", "lime", "cabbage"],
+    "description": "Crispy beer-battered cod in warm corn tortillas with crunchy cabbage slaw, pickled jalapeños, and a smoky chipotle crema. Best eaten standing at the kitchen counter.",
+    "ingredients": ["600g cod or mahi-mahi, cut into 8cm strips","Batter: 150g flour, 1 tsp baking powder, 1 tsp cumin, ½ tsp garlic powder, ½ tsp salt, 240ml cold lager","Vegetable oil for frying","Slaw: 200g shredded green cabbage, 1 lime juiced, 1 tbsp apple cider vinegar, pinch sugar, salt","Chipotle crema: 150g sour cream, 2 chipotles in adobo (minced), 1 garlic clove grated, lime juice","12 small corn tortillas","Pickled jalapeños, lime wedges, fresh cilantro"],
+    "instructions": ["Toss cabbage with lime juice, vinegar, sugar, and salt. Let sit 20 minutes; it softens and brightens.","Whisk crema ingredients together. Season with salt and lime. Refrigerate.","Whisk flour, baking powder, cumin, garlic powder, and salt. Pour in cold beer and stir until just combined — lumps are fine.","Heat 4cm of oil in a heavy pot to 190°C (375°F).","Pat fish dry. Dip in batter, let excess drip off, and lower carefully into oil. Fry in batches, 3 minutes per side until deeply golden. Drain on a rack.","Warm tortillas directly on a gas flame or dry skillet until charred in spots.","Build each taco: slaw, fish, chipotle crema, pickled jalapeños, cilantro. Squeeze lime over everything."],
+    "notes": "Cold beer = crispier batter. Keep the batter in the fridge while the oil heats. Don't overcrowd the pot or the temperature drops and you get soggy fish."
+  },
+  {
+    "id": 4, "title": "Shakshuka", "cuisine": "Middle Eastern", "category": "Eggs",
+    "prepTime": 10, "cookTime": 25, "servings": 2, "difficulty": "Easy",
+    "tags": ["eggs", "tomato", "vegetarian", "breakfast", "one-pan"],
+    "description": "Eggs poached directly in a spiced tomato and pepper sauce. One pan, twenty minutes, and you have something that feels celebratory for a Tuesday morning.",
+    "ingredients": ["2 tbsp olive oil","1 large white onion, diced","1 red bell pepper, diced","4 garlic cloves, thinly sliced","2 tsp cumin, 1 tsp smoked paprika, ½ tsp caraway seeds, pinch cayenne","400g can crushed tomatoes","1 tsp sugar","Salt and pepper","4–6 large eggs","100g feta, crumbled","Fresh parsley and crusty bread to serve"],
+    "instructions": ["Heat olive oil in a wide, heavy skillet over medium heat. Add onion and pepper with a pinch of salt. Cook 8 minutes until very soft.","Add garlic and all spices. Cook 1–2 minutes until fragrant.","Pour in tomatoes and sugar. Stir and simmer 10 minutes until sauce is thick and deeply flavored. Taste and season.","Use a spoon to make wells in the sauce. Crack one egg into each well.","Cover the pan and cook 5–8 minutes until whites are just set but yolks are still runny. Check frequently.","Scatter crumbled feta over the top. Finish with parsley and a drizzle of olive oil.","Serve directly from the pan with bread for dipping."],
+    "notes": "The difference between a perfect shakshuka and an overcooked one is about 2 minutes. Pull it when the whites look barely set — residual heat finishes them."
+  },
+  {
+    "id": 5, "title": "Classic French Omelette", "cuisine": "French", "category": "Eggs",
+    "prepTime": 5, "cookTime": 3, "servings": 1, "difficulty": "Hard",
+    "tags": ["eggs", "butter", "technique", "quick", "breakfast"],
+    "description": "The French omelette is a technique benchmark disguised as breakfast. Pale yellow, creamy inside, folds without a seam. Three eggs, two minutes, and your full attention.",
+    "ingredients": ["3 large eggs, very fresh","15g cold unsalted butter","Small pinch fine salt","White pepper","Optional fillings: fresh herbs, Gruyère, goat cheese"],
+    "instructions": ["Crack eggs into a bowl. Beat vigorously with a fork until completely uniform — no streaks of white. Season with salt and white pepper.","Heat a 20cm non-stick pan over high heat. Add butter. When it foams and the foam just begins to subside (don't let it brown), pour in the eggs.","Immediately stir with a fork using quick small circles while shaking the pan back and forth. Keep everything moving for about 30 seconds.","When the eggs are still slightly liquid on top (creamy, not set), stop stirring. Add any filling down the center.","Tilt the pan 45 degrees. Use the fork to fold the top third of the omelette over the filling.","Roll the omelette out onto a warm plate — the bottom fold completes itself as it tips over the pan edge. The seam should be on the bottom.","The omelette should be pale yellow with no browning whatsoever."],
+    "notes": "Everything happens in under 3 minutes. Have the plate warm, your filling ready, and your full attention on the pan. This is worth making ten times to get right."
+  },
+  {
+    "id": 6, "title": "Miso Ramen", "cuisine": "Japanese", "category": "Soup",
+    "prepTime": 20, "cookTime": 30, "servings": 2, "difficulty": "Medium",
+    "tags": ["soup", "noodles", "miso", "pork", "warming"],
+    "description": "A rich, deeply savory miso tare stirred into a dashi-and-pork broth, with wavy ramen noodles, a soft egg, corn, and crispy chili-sesame garlic oil pooled on top.",
+    "ingredients": ["Tare: 80g white miso, 2 tbsp sake, 1 tbsp mirin, 1 tbsp soy sauce, 1 tsp sesame paste","Broth: 1L dashi, 500ml pork or chicken stock, 2 tsp sesame oil","200g ground pork","1 tbsp gochujang or chili bean paste","2 garlic cloves, 25g ginger (grated)","200g fresh or dried ramen noodles","2 soft-boiled eggs (7 min, marinated in 2:1 soy-mirin)","Toppings: corn, scallion, nori, toasted sesame, bamboo shoots","Chili oil to finish"],
+    "instructions": ["Soft-boil eggs: 7 minutes in boiling water, ice bath immediately. Peel and marinate in 2:1 soy-mirin for at least 1 hour.","Whisk all tare ingredients together until smooth. Set aside.","Brown ground pork in a dry pan over high heat, breaking it up, until crispy in spots. Add gochujang, garlic, and ginger. Cook 2 more minutes.","Bring dashi and pork stock to a gentle simmer. Keep hot.","Cook noodles according to package. Drain; divide between 2 bowls.","Add 3 tablespoons of tare to each bowl. Ladle hot broth over to fill — stir to dissolve the tare.","Top with pork, halved egg, corn, bamboo shoots, and scallion. Drizzle with chili oil."],
+    "notes": "The tare is the soul of the bowl — make extra and keep it in the fridge for a week. The broth should be hot when it hits the tare, not simmering in it."
+  }
+];
+
+// ── State ───────────────────────────────────────────────────
+let RECIPES = [];
+let activeFilter = 'All';
+let searchQuery = '';
+
+// ── Load ────────────────────────────────────────────────────
+async function loadRecipes() {
+  try {
+    const res = await fetch('./recipes.json');
+    if (!res.ok) throw new Error('not found');
+    RECIPES = await res.json();
+  } catch {
+    RECIPES = EMBEDDED;
+  }
+  init();
+}
+
+// ── Init ────────────────────────────────────────────────────
+function init() {
+  renderFilters();
+  renderGrid();
+}
+
+// ── Filters ─────────────────────────────────────────────────
+function renderFilters() {
+  const cuisines = ['All', ...new Set(RECIPES.map(r => r.cuisine))];
+  const container = document.getElementById('filters');
+  container.innerHTML = cuisines.map(c => `
+    <button
+      class="chip${c === activeFilter ? ' active' : ''}"
+      data-cuisine="${c}"
+      role="listitem"
+      aria-pressed="${c === activeFilter}"
+    >${c}</button>
+  `).join('');
+
+  container.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeFilter = btn.dataset.cuisine;
+      container.querySelectorAll('.chip').forEach(b => {
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-pressed', b === btn);
+      });
+      renderGrid();
+    });
+  });
+}
+
+// ── Grid ────────────────────────────────────────────────────
+function filterRecipes() {
+  const q = searchQuery.toLowerCase();
+  return RECIPES.filter(r => {
+    const matchesCuisine = activeFilter === 'All' || r.cuisine === activeFilter;
+    if (!q) return matchesCuisine;
+    const searchable = [r.title, r.cuisine, r.category, r.description, ...r.tags, ...r.ingredients].join(' ').toLowerCase();
+    return matchesCuisine && searchable.includes(q);
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const count = document.getElementById('count');
+  const filtered = filterRecipes();
+
+  count.textContent = `${filtered.length} recipe${filtered.length !== 1 ? 's' : ''}`;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <p>Nothing found.</p>
+        <p>Try a different search or clear the filter.</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(cardHTML).join('');
+  grid.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => openModal(+card.dataset.id));
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(+card.dataset.id); }
+    });
+  });
+}
+
+function cardHTML(r) {
+  const total = r.prepTime + r.cookTime;
+  const color = CUISINE_COLORS[r.cuisine] || defaultColor;
+  const tags = r.tags.slice(0, 4).map(t => `<span class="tag">${t}</span>`).join('');
+  return `
+    <article class="card" data-id="${r.id}" tabindex="0" role="listitem" aria-label="${r.title}">
+      <div class="card-band" style="background:${color}" data-cuisine="${r.cuisine}">
+        <span class="card-cuisine-label">${r.cuisine}</span>
+      </div>
+      <div class="card-body">
+        <h3 class="card-title">${r.title}</h3>
+        <div class="card-meta">
+          <span>${total} min</span>
+          <span class="meta-sep">·</span>
+          <span>serves ${r.servings}</span>
+          <span class="meta-sep">·</span>
+          <span>${r.difficulty}</span>
+        </div>
+        <p class="card-desc">${r.description}</p>
+        <div class="card-tags">${tags}</div>
+      </div>
+    </article>`;
+}
+
+// ── Modal ───────────────────────────────────────────────────
+let prevFocus = null;
+
+function openModal(id) {
+  const r = RECIPES.find(x => x.id === id);
+  if (!r) return;
+
+  prevFocus = document.activeElement;
+  const color = CUISINE_COLORS[r.cuisine] || defaultColor;
+  const total = r.prepTime + r.cookTime;
+
+  document.getElementById('modal-band').style.background = color;
+  document.getElementById('modal-band').dataset.cuisine = r.cuisine;
+  document.getElementById('modal-cuisine').textContent = r.cuisine.toUpperCase();
+  document.getElementById('modal-title').textContent = r.title;
+  document.getElementById('modal-desc').textContent = r.description;
+
+  document.getElementById('modal-stats').innerHTML = `
+    <span>⏱ <strong>${r.prepTime} min</strong> prep</span>
+    <span>🍳 <strong>${r.cookTime} min</strong> cook</span>
+    <span>⏳ <strong>${total} min</strong> total</span>
+    <span>🍽 <strong>Serves ${r.servings}</strong></span>
+    <span>📊 <strong>${r.difficulty}</strong></span>
+  `;
+
+  document.getElementById('modal-ingredients').innerHTML =
+    r.ingredients.map(i => `<li>${i}</li>`).join('');
+
+  document.getElementById('modal-steps').innerHTML =
+    r.instructions.map((step, i) => `
+      <li class="step">
+        <span class="step-num">${String(i + 1).padStart(2, '0')}</span>
+        <span>${step}</span>
+      </li>`).join('');
+
+  const notesEl = document.getElementById('modal-notes');
+  if (r.notes) {
+    document.getElementById('modal-notes-text').textContent = r.notes;
+    notesEl.hidden = false;
+  } else {
+    notesEl.hidden = true;
+  }
+
+  // Scroll modal to top
+  document.getElementById('modal-card').scrollTop = 0;
+
+  const overlay = document.getElementById('modal');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('modal-close').focus();
+}
+
+function closeModal() {
+  const overlay = document.getElementById('modal');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  if (prevFocus) prevFocus.focus();
+}
+
+// ── Event listeners ─────────────────────────────────────────
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  renderGrid();
+});
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('modal').classList.contains('open')) closeModal();
+});
+
+// ── Boot ─────────────────────────────────────────────────────
+loadRecipes();
+</script>
