@@ -847,6 +847,28 @@ body:has(.sheet.open) .fab-bar {
   min-height: 100%;
 }
 
+.cook-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+}
+
+.cook-pane-head {
+  flex-shrink: 0;
+  padding: 24px 28px 0;
+}
+
+.cook-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 28px 32px;
+}
+
+.cook-pane.method-pane .cook-scroll {
+  padding-bottom: calc(32px + var(--safe-b));
+}
+
 @media (min-width: 760px) {
   .cook-layout {
     grid-template-columns: minmax(280px, 0.85fr) minmax(320px, 1.15fr);
@@ -854,22 +876,17 @@ body:has(.sheet.open) .fab-bar {
     min-height: 0;
   }
   .cook-pane {
-    min-height: 0;
-    overflow: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
+    height: 100%;
   }
   .cook-pane + .cook-pane {
     border-left: 1px solid var(--line);
   }
-}
-
-.cook-pane {
-  padding: 24px 28px 32px;
-}
-
-.cook-pane.method-pane {
-  padding-bottom: calc(32px + var(--safe-b));
+  .cook-scroll {
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .section-label {
@@ -878,7 +895,11 @@ body:has(.sheet.open) .fab-bar {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--mute);
-  margin-bottom: 14px;
+  margin: 0 0 14px;
+  position: static !important;
+  top: auto !important;
+  background: none !important;
+  z-index: auto !important;
 }
 
 .detail-intro {
@@ -1215,6 +1236,7 @@ label.field select:focus {
   .search { max-width: none; margin-left: 0; }
   .brand span { display: none; }
   .brand { font-size: 1.2rem; }
-  .cook-pane { padding: 18px 18px 28px; }
+  .cook-pane-head { padding: 18px 18px 0; }
+  .cook-scroll { padding: 0 18px 28px; }
   .sheet-body.editor-body { padding: 18px 18px calc(24px + var(--safe-b)); }
 }

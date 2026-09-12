@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=4">
 </head>
 <body>
   <header class="topbar" id="topbar">
@@ -405,15 +405,23 @@ function openDetail(id) {
   $("#detail-body").innerHTML = `
     <div class="cook-layout">
       <div class="cook-pane">
-        ${r.description ? `<p class="detail-intro">${escapeHtml(r.description)}</p>` : ""}
-        <div class="section-label">Ingredients</div>
-        <div class="ing-stack">${cols || `<p style="color:var(--mute)">No ingredients yet.</p>`}</div>
+        <div class="cook-pane-head">
+          ${r.description ? `<p class="detail-intro">${escapeHtml(r.description)}</p>` : ""}
+          <div class="section-label">Ingredients</div>
+        </div>
+        <div class="cook-scroll">
+          <div class="ing-stack">${cols || `<p style="color:var(--mute)">No ingredients yet.</p>`}</div>
+        </div>
       </div>
       <div class="cook-pane method-pane">
-        <div class="section-label">Method — ${r.steps.length} steps</div>
-        <div class="steps">${steps || `<p style="color:var(--mute)">No steps yet.</p>`}</div>
-        ${r.notes ? `<div class="notes"><strong>Cook's note</strong>${escapeHtml(r.notes)}</div>` : ""}
-        ${r.videoLink ? `<a class="ref-link" href="${escapeAttr(r.videoLink)}" target="_blank" rel="noopener">Reference video ↗</a>` : ""}
+        <div class="cook-pane-head">
+          <div class="section-label">Method — ${r.steps.length} steps</div>
+        </div>
+        <div class="cook-scroll">
+          <div class="steps">${steps || `<p style="color:var(--mute)">No steps yet.</p>`}</div>
+          ${r.notes ? `<div class="notes"><strong>Cook's note</strong>${escapeHtml(r.notes)}</div>` : ""}
+          ${r.videoLink ? `<a class="ref-link" href="${escapeAttr(r.videoLink)}" target="_blank" rel="noopener">Reference video ↗</a>` : ""}
+        </div>
       </div>
     </div>
   `;
@@ -421,7 +429,7 @@ function openDetail(id) {
   restoreChecks(r.id);
   showSheet("detail");
   $("#detail-body").scrollTop = 0;
-  $$(".cook-pane", $("#detail-body")).forEach(p => { p.scrollTop = 0; });
+  $$(".cook-scroll", $("#detail-body")).forEach(p => { p.scrollTop = 0; });
 }
 
 function metaItem(label, value) {
