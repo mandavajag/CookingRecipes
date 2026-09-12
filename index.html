@@ -402,6 +402,11 @@ main { padding: 18px 0 calc(96px + var(--safe-b)); }
   pointer-events: none;
 }
 
+body:has(.sheet.open) .fab-bar {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .fab-bar > * { pointer-events: auto; }
 
 .fab {
@@ -431,8 +436,8 @@ main { padding: 18px 0 calc(96px + var(--safe-b)); }
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: rgba(15, 20, 18, 0.48);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 20, 18, 0.55);
+  backdrop-filter: blur(6px);
   opacity: 0;
   pointer-events: none;
   transition: opacity .2s;
@@ -443,42 +448,46 @@ main { padding: 18px 0 calc(96px + var(--safe-b)); }
   pointer-events: all;
 }
 
+/* Full-viewport cook panel — never taller than the screen */
 .sheet {
   position: fixed;
   z-index: 90;
-  left: 50%;
-  bottom: 0;
-  transform: translate(-50%, 110%);
-  width: min(720px, 100%);
-  max-height: min(94dvh, 920px);
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
   background: var(--surface-solid);
-  border-radius: 24px 24px 0 0;
-  box-shadow: var(--shadow);
-  display: flex;
+  display: none;
   flex-direction: column;
-  transition: transform .32s cubic-bezier(.22,.61,.36,1);
   overflow: hidden;
+  transform: translateY(12px);
+  opacity: 0;
+  transition: transform .28s cubic-bezier(.22,.61,.36,1), opacity .2s;
 }
 
-.overlay.open + .sheet,
 .sheet.open {
-  transform: translate(-50%, 0);
+  display: flex;
+  transform: translateY(0);
+  opacity: 1;
 }
 
-@media (min-width: 768px) {
+.sheet[hidden] {
+  display: none !important;
+}
+
+@media (min-width: 900px) {
   .sheet {
-    bottom: auto;
-    top: 50%;
+    inset: 3vh auto 3vh 50%;
+    left: 50%;
+    width: min(1080px, calc(100vw - 48px));
+    height: auto;
+    max-height: 94dvh;
     border-radius: 22px;
-    transform: translate(-50%, -46%) scale(0.96);
-    opacity: 0;
-    pointer-events: none;
-    max-height: min(88dvh, 860px);
+    box-shadow: var(--shadow);
+    transform: translate(-50%, 8px);
   }
   .sheet.open {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-    pointer-events: all;
+    transform: translate(-50%, 0);
   }
 }
 
@@ -487,26 +496,19 @@ main { padding: 18px 0 calc(96px + var(--safe-b)); }
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 18px 20px 12px;
+  padding: 14px 18px 14px;
+  padding-top: max(14px, env(safe-area-inset-top));
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
+  background: var(--surface-solid);
 }
 
-.sheet-grab {
-  width: 40px;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--paper-2);
-  margin: 8px auto 0;
-  flex-shrink: 0;
-}
-
-@media (min-width: 768px) { .sheet-grab { display: none; } }
+.sheet-grab { display: none; }
 
 .sheet-title {
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(1.35rem, 4vw, 1.85rem);
+  font-size: clamp(1.25rem, 3.6vw, 1.75rem);
   letter-spacing: -0.035em;
   line-height: 1.1;
   text-wrap: balance;
@@ -530,10 +532,48 @@ main { padding: 18px 0 calc(96px + var(--safe-b)); }
 }
 
 .sheet-body {
+  flex: 1 1 auto;
+  min-height: 0; /* critical: allow flex child to scroll */
   overflow: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0;
+}
+
+.sheet-body.editor-body {
   padding: 18px 20px calc(24px + var(--safe-b));
-  flex: 1;
+}
+
+/* Cook layout: ingredients | method, each scrolls on its own (desktop) */
+.cook-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100%;
+}
+
+@media (min-width: 800px) {
+  .cook-layout {
+    grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.1fr);
+    height: 100%;
+    min-height: 0;
+  }
+  .cook-pane {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cook-pane + .cook-pane {
+    border-left: 1px solid var(--line);
+  }
+}
+
+.cook-pane {
+  padding: 18px 20px 28px;
+}
+
+.cook-pane.method-pane {
+  padding-bottom: calc(28px + var(--safe-b));
 }
 
 .section-label {
@@ -543,17 +583,17 @@ main { padding: 18px 0 calc(96px + var(--safe-b)); }
   text-transform: uppercase;
   color: var(--mute);
   margin-bottom: 12px;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, var(--surface-solid) 70%, transparent);
+  padding: 4px 0 10px;
+  z-index: 1;
 }
 
-.cols {
-  display: grid;
-  gap: 14px;
-  margin-bottom: 28px;
-}
-
-@media (min-width: 640px) {
-  .cols.n-2 { grid-template-columns: 1fr 1fr; }
-  .cols.n-3 { grid-template-columns: 1fr 1fr 1fr; }
+.ing-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .col-block {
@@ -620,6 +660,10 @@ main { padding: 18px 0 calc(96px + var(--safe-b)); }
   background: var(--sage);
   border-color: var(--sage);
   color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='m5 12 5 5L20 7'/%3E%3C/svg%3E");
+  background-size: 14px;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .check-text {
@@ -871,13 +915,12 @@ label.field select:focus {
 
   <!-- Recipe detail -->
   <section class="sheet" id="detail" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
-    <div class="sheet-grab" aria-hidden="true"></div>
     <div class="sheet-head">
-      <div>
+      <div style="min-width:0">
         <h2 class="sheet-title" id="detail-title"></h2>
         <div class="sheet-meta" id="detail-meta"></div>
       </div>
-      <button class="icon-btn ghost" id="detail-close" aria-label="Close">
+      <button class="icon-btn ghost" id="detail-close" aria-label="Close recipe">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>
@@ -886,7 +929,6 @@ label.field select:focus {
 
   <!-- Add / edit form -->
   <section class="sheet" id="editor" role="dialog" aria-modal="true" aria-labelledby="editor-title" hidden>
-    <div class="sheet-grab" aria-hidden="true"></div>
     <div class="sheet-head">
       <div>
         <h2 class="sheet-title" id="editor-title">Add recipe</h2>
@@ -895,7 +937,7 @@ label.field select:focus {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>
-    <div class="sheet-body">
+    <div class="sheet-body editor-body">
       <form class="form-grid two" id="recipe-form" autocomplete="off">
         <label class="field span-2">Title *
           <input name="title" required placeholder="e.g. Garlic butter shrimp" maxlength="120">
@@ -1153,7 +1195,6 @@ function openDetail(id) {
   if (r.difficulty) bits.push(`<span class="meta-chip">${escapeHtml(r.difficulty)}</span>`);
   $("#detail-meta").innerHTML = bits.join("");
 
-  const n = Math.min(3, Math.max(1, r.columns.length));
   const cols = r.columns.map(col => `
     <div class="col-block">
       <h4>${escapeHtml(col.title)} <em>${col.items.length}</em></h4>
@@ -1173,17 +1214,26 @@ function openDetail(id) {
     </div>`).join("");
 
   $("#detail-body").innerHTML = `
-    ${r.description ? `<p style="color:var(--mute);margin-bottom:22px">${escapeHtml(r.description)}</p>` : ""}
-    <div class="section-label">Ingredients — tap to check off</div>
-    <div class="cols n-${n}">${cols || `<p style="color:var(--mute)">No ingredients yet.</p>`}</div>
-    <div class="section-label">Method — ${r.steps.length} steps</div>
-    <div class="steps">${steps || `<p style="color:var(--mute)">No steps yet.</p>`}</div>
-    ${r.notes ? `<div class="notes"><strong>Cook's note</strong>${escapeHtml(r.notes)}</div>` : ""}
-    ${r.videoLink ? `<a class="ref-link" href="${escapeAttr(r.videoLink)}" target="_blank" rel="noopener">Reference video ↗</a>` : ""}
+    <div class="cook-layout">
+      <div class="cook-pane">
+        ${r.description ? `<p style="color:var(--mute);margin-bottom:16px;font-size:.95rem">${escapeHtml(r.description)}</p>` : ""}
+        <div class="section-label">Ingredients — tap to check off</div>
+        <div class="ing-stack">${cols || `<p style="color:var(--mute)">No ingredients yet.</p>`}</div>
+      </div>
+      <div class="cook-pane method-pane">
+        <div class="section-label">Method — ${r.steps.length} steps</div>
+        <div class="steps">${steps || `<p style="color:var(--mute)">No steps yet.</p>`}</div>
+        ${r.notes ? `<div class="notes"><strong>Cook's note</strong>${escapeHtml(r.notes)}</div>` : ""}
+        ${r.videoLink ? `<a class="ref-link" href="${escapeAttr(r.videoLink)}" target="_blank" rel="noopener">Reference video ↗</a>` : ""}
+      </div>
+    </div>
   `;
 
   restoreChecks(r.id);
   showSheet("detail");
+  // Reset scroll so you always start at the top
+  $("#detail-body").scrollTop = 0;
+  $$(".cook-pane", $("#detail-body")).forEach(p => { p.scrollTop = 0; });
 }
 
 function restoreChecks(recipeId) {
@@ -1209,19 +1259,18 @@ function showSheet(which) {
   const detail = $("#detail");
   const editor = $("#editor");
   overlay.hidden = false;
-  requestAnimationFrame(() => overlay.classList.add("open"));
-  if (which === "detail") {
-    editor.classList.remove("open");
-    editor.hidden = true;
-    detail.hidden = false;
-    requestAnimationFrame(() => detail.classList.add("open"));
-  } else {
-    detail.classList.remove("open");
-    detail.hidden = true;
-    editor.hidden = false;
-    requestAnimationFrame(() => editor.classList.add("open"));
-  }
+  void overlay.offsetWidth;
+  overlay.classList.add("open");
+
+  const show = which === "detail" ? detail : editor;
+  const hide = which === "detail" ? editor : detail;
+  hide.classList.remove("open");
+  hide.hidden = true;
+  show.hidden = false;
+  void show.offsetWidth;
+  show.classList.add("open");
   document.body.style.overflow = "hidden";
+  (which === "detail" ? $("#detail-close") : $("#editor-close")).focus();
 }
 
 function closeSheets() {
@@ -1230,9 +1279,11 @@ function closeSheets() {
   $("#editor").classList.remove("open");
   document.body.style.overflow = "";
   setTimeout(() => {
-    $("#overlay").hidden = true;
-    $("#detail").hidden = true;
-    $("#editor").hidden = true;
+    if (!$("#detail").classList.contains("open") && !$("#editor").classList.contains("open")) {
+      $("#overlay").hidden = true;
+      $("#detail").hidden = true;
+      $("#editor").hidden = true;
+    }
   }, 280);
   openId = null;
 }
