@@ -3,937 +3,106 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0F1412">
+  <meta name="theme-color" content="#faf8f5">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Kitchen — Recipes</title>
+  <title>Kitchen.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-  <style>
-:root {
-  --ink: #0F1412;
-  --ink-2: #2A3530;
-  --mute: #6B7A72;
-  --line: rgba(15, 20, 18, 0.10);
-  --paper: #F4F7F4;
-  --paper-2: #E8EEE9;
-  --surface: rgba(255, 255, 255, 0.78);
-  --surface-solid: #FBFCFA;
-  --sage: #3D6B56;
-  --sage-deep: #2A4F3F;
-  --lime: #C8E86A;
-  --glow: rgba(61, 107, 86, 0.22);
-  --danger: #B23A2E;
-  --ok: #2F7A4E;
-  --r: 18px;
-  --r-sm: 12px;
-  --shadow: 0 12px 40px rgba(15, 20, 18, 0.10);
-  --safe-b: env(safe-area-inset-bottom, 0px);
-  --font: "DM Sans", system-ui, sans-serif;
-  --display: "Syne", system-ui, sans-serif;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { scroll-behavior: smooth; }
-
-body {
-  font-family: var(--font);
-  color: var(--ink);
-  background: var(--paper);
-  min-height: 100dvh;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  background:
-    radial-gradient(1200px 700px at 10% -10%, rgba(200, 232, 106, 0.28), transparent 55%),
-    radial-gradient(900px 600px at 100% 0%, rgba(61, 107, 86, 0.18), transparent 50%),
-    radial-gradient(800px 500px at 70% 100%, rgba(42, 79, 63, 0.10), transparent 45%),
-    linear-gradient(180deg, #EEF3EE 0%, var(--paper) 40%, #E6EDE8 100%);
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  opacity: 0.35;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
-  mix-blend-mode: soft-light;
-}
-
-button, input, textarea, select {
-  font: inherit;
-  color: inherit;
-  border: none;
-  background: none;
-}
-
-button { cursor: pointer; }
-ul, ol { list-style: none; }
-a { color: inherit; }
-
-.wrap {
-  width: min(1120px, 100%);
-  margin-inline: auto;
-  padding-inline: max(16px, env(safe-area-inset-left));
-  padding-right: max(16px, env(safe-area-inset-right));
-}
-
-/* ── Top bar ─────────────────────────────────────────────── */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
-  background: rgba(244, 247, 244, 0.72);
-  border-bottom: 1px solid var(--line);
-  padding-top: env(safe-area-inset-top, 0);
-}
-
-.topbar-inner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 64px;
-  padding-block: 10px;
-}
-
-.brand {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: clamp(1.45rem, 4vw, 1.85rem);
-  letter-spacing: -0.04em;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.brand span {
-  color: var(--sage);
-}
-
-.search {
-  flex: 1;
-  position: relative;
-  min-width: 0;
-}
-
-.search svg {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--mute);
-  pointer-events: none;
-}
-
-.search input {
-  width: 100%;
-  height: 42px;
-  padding: 0 14px 0 40px;
-  border-radius: 999px;
-  background: var(--surface-solid);
-  border: 1px solid var(--line);
-  outline: none;
-  transition: border-color .15s, box-shadow .15s;
-}
-
-.search input:focus {
-  border-color: var(--sage);
-  box-shadow: 0 0 0 3px var(--glow);
-}
-
-.icon-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: var(--ink);
-  color: #fff;
-  flex-shrink: 0;
-  transition: transform .15s, background .15s;
-}
-
-.icon-btn:hover { background: var(--sage-deep); }
-.icon-btn:active { transform: scale(0.96); }
-
-.icon-btn.ghost {
-  background: var(--surface-solid);
-  color: var(--ink);
-  border: 1px solid var(--line);
-}
-
-.icon-btn.ghost:hover { background: var(--paper-2); }
-
-/* ── Filters ─────────────────────────────────────────────── */
-.filters-row {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 0 0 14px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.filters-row::-webkit-scrollbar { display: none; }
-
-.chip {
-  flex-shrink: 0;
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: var(--surface-solid);
-  border: 1px solid var(--line);
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--ink-2);
-  transition: background .15s, color .15s, border-color .15s, transform .15s;
-}
-
-.chip:active { transform: scale(0.97); }
-.chip.active {
-  background: var(--ink);
-  color: #fff;
-  border-color: var(--ink);
-}
-
-/* ── Hero strip ──────────────────────────────────────────── */
-.hero {
-  padding: 28px 0 8px;
-  animation: rise .55s cubic-bezier(.22,.61,.36,1) both;
-}
-
-.hero h2 {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: clamp(1.8rem, 5.5vw, 2.6rem);
-  letter-spacing: -0.045em;
-  line-height: 1.05;
-  max-width: 16ch;
-}
-
-.hero p {
-  margin-top: 10px;
-  color: var(--mute);
-  font-size: 0.98rem;
-  max-width: 42ch;
-}
-
-.stats {
-  margin-top: 18px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.55);
-  border: 1px solid var(--line);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ink-2);
-}
-
-.stat i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--sage);
-  box-shadow: 0 0 0 4px var(--glow);
-}
-
-/* ── Grid ────────────────────────────────────────────────── */
-main { padding: 18px 0 calc(96px + var(--safe-b)); }
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  gap: 16px;
-}
-
-.recipe {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 220px;
-  padding: 20px;
-  border-radius: var(--r);
-  background: var(--surface-solid);
-  border: 1px solid var(--line);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset;
-  text-align: left;
-  overflow: hidden;
-  transition: transform .2s, box-shadow .2s, border-color .2s;
-  animation: rise .5s cubic-bezier(.22,.61,.36,1) both;
-  cursor: pointer;
-}
-
-.recipe:nth-child(1) { animation-delay: .02s; }
-.recipe:nth-child(2) { animation-delay: .06s; }
-.recipe:nth-child(3) { animation-delay: .10s; }
-.recipe:nth-child(4) { animation-delay: .14s; }
-.recipe:nth-child(5) { animation-delay: .18s; }
-.recipe:nth-child(6) { animation-delay: .22s; }
-
-.recipe::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--accent, var(--sage));
-}
-
-.recipe:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow);
-  border-color: rgba(61, 107, 86, 0.28);
-}
-
-.recipe:focus-visible {
-  outline: 2px solid var(--sage);
-  outline-offset: 3px;
-}
-
-.recipe-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: flex-start;
-  margin-bottom: 14px;
-}
-
-.cuisine {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--sage);
-}
-
-.time-pill {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--mute);
-  background: var(--paper-2);
-  padding: 4px 10px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.recipe h3 {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 1.35rem;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  text-wrap: balance;
-  margin-bottom: 8px;
-}
-
-.recipe .desc {
-  color: var(--mute);
-  font-size: 0.9rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1;
-}
-
-.recipe-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 16px;
-}
-
-.tag {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--ink-2);
-  background: var(--paper);
-  border: 1px solid var(--line);
-  padding: 3px 9px;
-  border-radius: 999px;
-}
-
-.empty {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 64px 20px;
-  color: var(--mute);
-}
-
-.empty strong {
-  display: block;
-  font-family: var(--display);
-  font-size: 1.4rem;
-  color: var(--ink);
-  margin-bottom: 6px;
-}
-
-/* ── FAB ─────────────────────────────────────────────────── */
-.fab-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 45;
-  padding: 12px 16px calc(12px + var(--safe-b));
-  background: linear-gradient(180deg, transparent, rgba(244, 247, 244, 0.92) 35%);
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  pointer-events: none;
-}
-
-body:has(.sheet.open) .fab-bar {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.fab-bar > * { pointer-events: auto; }
-
-.fab {
-  height: 48px;
-  padding: 0 20px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 0.92rem;
-  box-shadow: var(--shadow);
-  transition: transform .15s, background .15s;
-}
-
-.fab:active { transform: scale(0.97); }
-.fab.primary { background: var(--ink); color: #fff; }
-.fab.primary:hover { background: var(--sage-deep); }
-.fab.secondary {
-  background: var(--surface-solid);
-  border: 1px solid var(--line);
-  color: var(--ink);
-}
-
-/* ── Sheets / overlays ───────────────────────────────────── */
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  background: rgba(15, 20, 18, 0.55);
-  backdrop-filter: blur(6px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .2s;
-}
-
-.overlay.open {
-  opacity: 1;
-  pointer-events: all;
-}
-
-/* Full-viewport cook panel — never taller than the screen */
-.sheet {
-  position: fixed;
-  z-index: 90;
-  inset: 0;
-  width: 100%;
-  height: 100dvh;
-  max-height: 100dvh;
-  background: var(--surface-solid);
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-  transform: translateY(12px);
-  opacity: 0;
-  transition: transform .28s cubic-bezier(.22,.61,.36,1), opacity .2s;
-}
-
-.sheet.open {
-  display: flex;
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.sheet[hidden] {
-  display: none !important;
-}
-
-@media (min-width: 900px) {
-  .sheet {
-    inset: 3vh auto 3vh 50%;
-    left: 50%;
-    width: min(1080px, calc(100vw - 48px));
-    height: auto;
-    max-height: 94dvh;
-    border-radius: 22px;
-    box-shadow: var(--shadow);
-    transform: translate(-50%, 8px);
-  }
-  .sheet.open {
-    transform: translate(-50%, 0);
-  }
-}
-
-.sheet-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px 14px;
-  padding-top: max(14px, env(safe-area-inset-top));
-  border-bottom: 1px solid var(--line);
-  flex-shrink: 0;
-  background: var(--surface-solid);
-}
-
-.sheet-grab { display: none; }
-
-.sheet-title {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: clamp(1.25rem, 3.6vw, 1.75rem);
-  letter-spacing: -0.035em;
-  line-height: 1.1;
-  text-wrap: balance;
-}
-
-.sheet-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.meta-chip {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--ink-2);
-  background: var(--paper);
-  border: 1px solid var(--line);
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
-.sheet-body {
-  flex: 1 1 auto;
-  min-height: 0; /* critical: allow flex child to scroll */
-  overflow: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  padding: 0;
-}
-
-.sheet-body.editor-body {
-  padding: 18px 20px calc(24px + var(--safe-b));
-}
-
-/* Cook layout: ingredients | method, each scrolls on its own (desktop) */
-.cook-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  min-height: 100%;
-}
-
-@media (min-width: 800px) {
-  .cook-layout {
-    grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.1fr);
-    height: 100%;
-    min-height: 0;
-  }
-  .cook-pane {
-    min-height: 0;
-    overflow: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-  .cook-pane + .cook-pane {
-    border-left: 1px solid var(--line);
-  }
-}
-
-.cook-pane {
-  padding: 18px 20px 28px;
-}
-
-.cook-pane.method-pane {
-  padding-bottom: calc(28px + var(--safe-b));
-}
-
-.section-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--mute);
-  margin-bottom: 12px;
-  position: sticky;
-  top: 0;
-  background: linear-gradient(180deg, var(--surface-solid) 70%, transparent);
-  padding: 4px 0 10px;
-  z-index: 1;
-}
-
-.ing-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.col-block {
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  padding: 14px;
-}
-
-.col-block h4 {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: -0.02em;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.col-block h4 em {
-  font-style: normal;
-  font-family: var(--font);
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: var(--ink);
-  color: #fff;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-}
-
-.check-list { display: flex; flex-direction: column; gap: 2px; }
-
-.check-item {
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  gap: 10px;
-  align-items: start;
-  padding: 8px 4px;
-  border-radius: 8px;
-  cursor: pointer;
-  user-select: none;
-  transition: background .12s;
-}
-
-.check-item:hover { background: rgba(61, 107, 86, 0.06); }
-.check-item.done .check-text { opacity: 0.45; text-decoration: line-through; }
-
-.check-box {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  border: 1.5px solid var(--sage);
-  display: grid;
-  place-items: center;
-  margin-top: 1px;
-  transition: background .15s, border-color .15s;
-}
-
-.check-item.done .check-box {
-  background: var(--sage);
-  border-color: var(--sage);
-  color: #fff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='m5 12 5 5L20 7'/%3E%3C/svg%3E");
-  background-size: 14px;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-.check-text {
-  font-size: 0.92rem;
-  line-height: 1.4;
-}
-
-.check-text .qty {
-  font-weight: 700;
-  margin-right: 6px;
-  color: var(--ink);
-}
-
-.steps { display: flex; flex-direction: column; gap: 14px; }
-
-.step {
-  display: grid;
-  grid-template-columns: 36px 1fr;
-  gap: 12px;
-  align-items: start;
-}
-
-.step-num {
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--lime);
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 0.9rem;
-  display: grid;
-  place-items: center;
-}
-
-.step p {
-  font-size: 1rem;
-  line-height: 1.55;
-  padding-top: 6px;
-}
-
-.notes {
-  margin-top: 24px;
-  padding: 14px 16px;
-  border-radius: var(--r-sm);
-  background: linear-gradient(135deg, rgba(200,232,106,0.28), rgba(61,107,86,0.10));
-  border: 1px solid rgba(61,107,86,0.2);
-  font-size: 0.9rem;
-  line-height: 1.55;
-}
-
-.notes strong {
-  display: block;
-  font-family: var(--display);
-  font-size: 0.85rem;
-  letter-spacing: -0.02em;
-  margin-bottom: 4px;
-}
-
-.ref-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 16px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--sage);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* ── Form ────────────────────────────────────────────────── */
-.form-grid {
-  display: grid;
-  gap: 14px;
-}
-
-@media (min-width: 560px) {
-  .form-grid.two { grid-template-columns: 1fr 1fr; }
-  .form-grid .span-2 { grid-column: 1 / -1; }
-}
-
-label.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--mute);
-}
-
-label.field input,
-label.field textarea,
-label.field select {
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: #fff;
-  font-size: 0.95rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink);
-  outline: none;
-}
-
-label.field textarea {
-  height: auto;
-  min-height: 110px;
-  padding: 12px;
-  resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-
-label.field input:focus,
-label.field textarea:focus,
-label.field select:focus {
-  border-color: var(--sage);
-  box-shadow: 0 0 0 3px var(--glow);
-}
-
-.hint {
-  font-size: 0.82rem;
-  color: var(--mute);
-  background: var(--paper);
-  border: 1px dashed var(--line);
-  border-radius: 12px;
-  padding: 12px 14px;
-  line-height: 1.5;
-}
-
-.hint code {
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 0.78rem;
-  background: #fff;
-  border: 1px solid var(--line);
-  padding: 1px 6px;
-  border-radius: 6px;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-  padding-top: 8px;
-}
-
-.btn {
-  height: 44px;
-  padding: 0 18px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  transition: background .15s, transform .15s;
-}
-
-.btn:active { transform: scale(0.97); }
-.btn.ghost { background: var(--paper-2); }
-.btn.solid { background: var(--ink); color: #fff; }
-.btn.solid:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn.danger { color: var(--danger); }
-
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(78px + var(--safe-b));
-  transform: translateX(-50%) translateY(12px);
-  z-index: 100;
-  background: var(--ink);
-  color: #fff;
-  padding: 10px 16px;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .2s, transform .2s;
-  white-space: nowrap;
-  max-width: calc(100vw - 32px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-@keyframes rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <header class="topbar">
+  <header class="topbar" id="topbar">
     <div class="wrap topbar-inner">
-      <h1 class="brand">Kitchen<span>.</span></h1>
+      <a class="brand" href="#top" aria-label="Kitchen home">
+        <svg class="brand-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3c.4 2.2-.2 3.8-1.4 5.2C9.2 9.8 8 11.2 8 13.2c0 2.4 1.8 4.3 4 4.3s4-1.9 4-4.3c0-1.3-.4-2.4-1-3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M12 17.5V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M9.2 8.8c1.2.2 2.2.2 3.4 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span>Kitchen<em>.</em></span>
+      </a>
+      <nav class="topnav" aria-label="Primary">
+        <a class="nav-link" href="#recipes">Recipes</a>
+        <button type="button" class="nav-link" id="nav-add">Add</button>
+      </nav>
       <div class="search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="search" type="search" placeholder="Search while you cook…" aria-label="Search recipes" enterkeyhint="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="search" type="search" placeholder="Search recipes, ingredients, cuisines…" aria-label="Search recipes" enterkeyhint="search">
       </div>
-      <button class="icon-btn" id="btn-add" aria-label="Add recipe" title="Add recipe">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
     </div>
     <div class="wrap">
       <div class="filters-row" id="filters" role="list"></div>
     </div>
   </header>
 
-  <div class="wrap hero">
-    <h2>Cook mode, pocket sized.</h2>
-    <p>Tap a recipe, check off ingredients with messy hands, add new ones as you go. Saved on this device + exportable JSON.</p>
-    <div class="stats">
-      <span class="stat"><i></i><span id="count-label">0 recipes</span></span>
-      <span class="stat" id="local-label" hidden>includes local edits</span>
+  <section class="hero-section" id="top">
+    <div class="wrap hero-content">
+      <div>
+        <p class="hero-eyebrow"><span></span> Vol. 01 — The home cook’s collection</p>
+        <h1 class="hero-title">Cook <em>like</em> you mean it.</h1>
+        <p class="hero-sub">Your recipes, built for the counter — checklists, step-by-step guidance, and notes from the kitchen. Add as you go. Export anytime.</p>
+        <div class="hero-cta">
+          <a class="btn-primary" href="#recipes">Browse recipes →</a>
+          <button type="button" class="btn-ghost" id="hero-add">+ Add your own</button>
+        </div>
+      </div>
+      <div class="hero-stats" aria-label="Collection stats">
+        <div class="stat-item"><strong id="stat-recipes">0</strong> Recipes</div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-item"><strong id="stat-cuisines">0</strong> Cuisines</div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-item"><strong id="stat-local">0</strong> Local</div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <main>
+  <main id="recipes">
     <div class="wrap">
+      <div class="section-header">
+        <h2 class="section-title">All Recipes</h2>
+        <span class="section-count" id="count-label">0 recipes</span>
+      </div>
       <div class="grid" id="grid" role="list"></div>
     </div>
   </main>
 
   <div class="fab-bar">
-    <button class="fab secondary" id="btn-export" type="button">Export JSON</button>
-    <button class="fab primary" id="btn-add-fab" type="button">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    <button class="fab-secondary" id="btn-export" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+      Export
+    </button>
+    <button class="fab-primary" id="btn-add-fab" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       Add recipe
     </button>
   </div>
 
   <div class="overlay" id="overlay" hidden></div>
 
-  <!-- Recipe detail -->
   <section class="sheet" id="detail" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
-    <div class="sheet-head">
-      <div style="min-width:0">
-        <h2 class="sheet-title" id="detail-title"></h2>
-        <div class="sheet-meta" id="detail-meta"></div>
-      </div>
-      <button class="icon-btn ghost" id="detail-close" aria-label="Close recipe">
+    <div class="detail-hero" id="detail-hero">
+      <div class="detail-hero-mark" id="detail-hero-mark" aria-hidden="true"></div>
+      <div class="detail-hero-overlay"></div>
+      <button type="button" class="detail-close" id="detail-close" aria-label="Close recipe">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
+      <div class="detail-hero-text">
+        <div class="detail-cuisine" id="detail-cuisine"></div>
+        <h2 class="detail-title" id="detail-title"></h2>
+      </div>
     </div>
+    <div class="detail-meta-bar" id="detail-meta"></div>
     <div class="sheet-body" id="detail-body"></div>
   </section>
 
-  <!-- Add / edit form -->
   <section class="sheet" id="editor" role="dialog" aria-modal="true" aria-labelledby="editor-title" hidden>
     <div class="sheet-head">
       <div>
         <h2 class="sheet-title" id="editor-title">Add recipe</h2>
+        <p class="sheet-subtitle">Saved on this device — export JSON to back up.</p>
       </div>
-      <button class="icon-btn ghost" id="editor-close" aria-label="Close">
+      <button type="button" class="detail-close static" id="editor-close" aria-label="Close">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>
@@ -962,7 +131,7 @@ label.field select:focus {
         </label>
         <div class="hint span-2">
           Ingredients: one per line. Optional qty format <code>qty | ingredient</code> — e.g. <code>2 tbsp | olive oil</code>.
-          Use blank lines + a <code>## Section</code> header to split columns (Chicken / Rice / Sauce).
+          Use a <code>## Section</code> header to split groups (Chicken / Rice / Sauce).
         </div>
         <label class="field span-2">Ingredients
           <textarea name="ingredientsText" placeholder="## Chicken&#10;1.5 lb | thighs&#10;2 tbsp | olive oil&#10;&#10;## Rice&#10;2 cups | basmati"></textarea>
@@ -974,9 +143,9 @@ label.field select:focus {
           <input name="notes" placeholder="Optional tip for future-you">
         </label>
         <div class="form-actions span-2">
-          <button type="button" class="btn danger" id="btn-reset-local" hidden>Clear local recipes</button>
-          <button type="button" class="btn ghost" id="editor-cancel">Cancel</button>
-          <button type="submit" class="btn solid">Save recipe</button>
+          <button type="button" class="btn-danger" id="btn-reset-local" hidden>Clear local recipes</button>
+          <button type="button" class="btn-ghost-sm" id="editor-cancel">Cancel</button>
+          <button type="submit" class="btn-solid">Save recipe</button>
         </div>
       </form>
       <datalist id="cuisine-list"></datalist>
@@ -988,14 +157,15 @@ label.field select:focus {
   <script>
 const STORAGE_KEY = "kitchen.recipes.v1";
 const ACCENTS = {
-  Street: "#3D6B56",
-  Comfort: "#5C6B3D",
-  Italian: "#2F5D50",
-  Indian: "#8A5A2B",
-  "Middle Eastern": "#6B4A3A",
-  Mexican: "#7A3A2E",
-  Japanese: "#2A4A55",
-  French: "#3A4558",
+  Street: "#3a5a40",
+  Comfort: "#6b5a3a",
+  Italian: "#3a5a40",
+  Indian: "#bc6c25",
+  "Middle Eastern": "#8a5a3a",
+  Mexican: "#a83232",
+  Japanese: "#3a4a55",
+  French: "#4a4558",
+  Other: "#283618",
 };
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -1005,7 +175,6 @@ let baseRecipes = [];
 let recipes = [];
 let filter = "All";
 let query = "";
-let openId = null;
 
 function toast(msg) {
   const el = $("#toast");
@@ -1082,10 +251,7 @@ function parseIngredientBlock(text) {
   const lines = text.split("\n");
   const columns = [];
   let current = { title: "Ingredients", items: [] };
-
-  const push = () => {
-    if (current.items.length) columns.push(current);
-  };
+  const push = () => { if (current.items.length) columns.push(current); };
 
   for (const raw of lines) {
     const line = raw.trim();
@@ -1106,6 +272,10 @@ function parseIngredientBlock(text) {
   return columns;
 }
 
+function accent(cuisine) {
+  return ACCENTS[cuisine] || ACCENTS.Other;
+}
+
 async function boot() {
   try {
     const res = await fetch("./recipes.json", { cache: "no-store" });
@@ -1118,13 +288,16 @@ async function boot() {
   recipes = mergeRecipes(baseRecipes, loadLocal());
   renderFilters();
   renderGrid();
-  updateLocalFlag();
+  updateStats();
 }
 
-function updateLocalFlag() {
-  const hasLocal = loadLocal().length > 0;
-  $("#local-label").hidden = !hasLocal;
-  $("#btn-reset-local").hidden = !hasLocal;
+function updateStats() {
+  const localCount = loadLocal().length;
+  const cuisines = new Set(recipes.map(r => r.cuisine).filter(Boolean)).size;
+  $("#stat-recipes").textContent = String(recipes.length);
+  $("#stat-cuisines").textContent = String(cuisines);
+  $("#stat-local").textContent = String(localCount);
+  $("#btn-reset-local").hidden = localCount === 0;
 }
 
 function renderFilters() {
@@ -1166,34 +339,48 @@ function renderGrid() {
 }
 
 function cardHTML(r) {
-  const accent = ACCENTS[r.cuisine] || "#3D6B56";
+  const color = accent(r.cuisine);
   const time = r.total ? `${r.total} min` : (r.servings ? `serves ${r.servings}` : "—");
+  const mark = (r.cuisine || "K").charAt(0).toUpperCase();
   const tags = (r.tags || []).slice(0, 3).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
   return `
-    <button type="button" class="recipe" role="listitem" data-id="${escapeAttr(r.id)}" style="--accent:${accent}">
-      <div class="recipe-top">
-        <span class="cuisine">${escapeHtml(r.cuisine)}</span>
-        <span class="time-pill">${escapeHtml(time)}</span>
+    <button type="button" class="recipe" role="listitem" data-id="${escapeAttr(r.id)}" style="--accent:${color}">
+      <div class="recipe-img" aria-hidden="true">
+        <div class="recipe-img-art"><span>${escapeHtml(mark)}</span></div>
+        <span class="recipe-badge">${escapeHtml(r.cuisine)}</span>
+        <span class="recipe-time-badge">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          ${escapeHtml(time)}
+        </span>
       </div>
-      <h3>${escapeHtml(r.title)}</h3>
-      <p class="desc">${escapeHtml(r.description || "Open for ingredients & steps.")}</p>
-      <div class="recipe-foot">${tags}${r.source === "local" ? `<span class="tag">local</span>` : ""}</div>
+      <div class="recipe-body">
+        <h3>${escapeHtml(r.title)}</h3>
+        <p class="desc">${escapeHtml(r.description || "Open for ingredients & steps.")}</p>
+        <div class="recipe-foot">
+          ${tags}
+          ${r.source === "local" ? `<span class="tag local-tag">local</span>` : ""}
+        </div>
+      </div>
     </button>`;
 }
 
 function openDetail(id) {
   const r = recipes.find(x => x.id === id);
   if (!r) return;
-  openId = id;
+
+  const color = accent(r.cuisine);
+  $("#detail-hero").style.setProperty("--accent", color);
+  $("#detail-hero-mark").textContent = (r.cuisine || "K").charAt(0).toUpperCase();
+  $("#detail-cuisine").textContent = r.cuisine || "";
   $("#detail-title").textContent = r.title;
-  const bits = [];
-  if (r.cuisine) bits.push(`<span class="meta-chip">${escapeHtml(r.cuisine)}</span>`);
-  if (r.servings) bits.push(`<span class="meta-chip">${escapeHtml(String(r.servings))} servings</span>`);
-  if (r.prepTime) bits.push(`<span class="meta-chip">${r.prepTime}m prep</span>`);
-  if (r.cookTime) bits.push(`<span class="meta-chip">${r.cookTime}m cook</span>`);
-  if (r.total) bits.push(`<span class="meta-chip">${r.total}m total</span>`);
-  if (r.difficulty) bits.push(`<span class="meta-chip">${escapeHtml(r.difficulty)}</span>`);
-  $("#detail-meta").innerHTML = bits.join("");
+
+  const meta = [];
+  if (r.servings) meta.push(metaItem("Servings", String(r.servings)));
+  if (r.prepTime) meta.push(metaItem("Prep", `${r.prepTime}m`));
+  if (r.cookTime) meta.push(metaItem("Cook", `${r.cookTime}m`));
+  if (r.total) meta.push(metaItem("Total", `${r.total}m`));
+  if (r.difficulty) meta.push(metaItem("Level", r.difficulty));
+  $("#detail-meta").innerHTML = meta.join("") || metaItem("Ready", "Cook mode");
 
   const cols = r.columns.map(col => `
     <div class="col-block">
@@ -1216,7 +403,7 @@ function openDetail(id) {
   $("#detail-body").innerHTML = `
     <div class="cook-layout">
       <div class="cook-pane">
-        ${r.description ? `<p style="color:var(--mute);margin-bottom:16px;font-size:.95rem">${escapeHtml(r.description)}</p>` : ""}
+        ${r.description ? `<p class="detail-intro">${escapeHtml(r.description)}</p>` : ""}
         <div class="section-label">Ingredients — tap to check off</div>
         <div class="ing-stack">${cols || `<p style="color:var(--mute)">No ingredients yet.</p>`}</div>
       </div>
@@ -1231,9 +418,12 @@ function openDetail(id) {
 
   restoreChecks(r.id);
   showSheet("detail");
-  // Reset scroll so you always start at the top
   $("#detail-body").scrollTop = 0;
   $$(".cook-pane", $("#detail-body")).forEach(p => { p.scrollTop = 0; });
+}
+
+function metaItem(label, value) {
+  return `<div class="meta-item"><span class="meta-label">${escapeHtml(label)}</span><span class="meta-value">${escapeHtml(value)}</span></div>`;
 }
 
 function restoreChecks(recipeId) {
@@ -1285,7 +475,6 @@ function closeSheets() {
       $("#editor").hidden = true;
     }
   }, 280);
-  openId = null;
 }
 
 function openEditor() {
@@ -1318,7 +507,6 @@ function escapeAttr(s) {
   return escapeHtml(s).replaceAll("'", "&#39;");
 }
 
-/* events */
 $("#grid").addEventListener("click", e => {
   const card = e.target.closest(".recipe");
   if (card) openDetail(card.dataset.id);
@@ -1337,7 +525,8 @@ $("#search").addEventListener("input", e => {
   renderGrid();
 });
 
-$("#btn-add").addEventListener("click", openEditor);
+$("#nav-add").addEventListener("click", openEditor);
+$("#hero-add").addEventListener("click", openEditor);
 $("#btn-add-fab").addEventListener("click", openEditor);
 $("#btn-export").addEventListener("click", exportJSON);
 $("#detail-close").addEventListener("click", closeSheets);
@@ -1355,6 +544,10 @@ $("#detail-body").addEventListener("click", e => {
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") closeSheets();
 });
+
+window.addEventListener("scroll", () => {
+  $("#topbar").classList.toggle("scrolled", window.scrollY > 8);
+}, { passive: true });
 
 $("#recipe-form").addEventListener("submit", e => {
   e.preventDefault();
@@ -1389,7 +582,7 @@ $("#recipe-form").addEventListener("submit", e => {
   recipes = mergeRecipes(baseRecipes, local);
   renderFilters();
   renderGrid();
-  updateLocalFlag();
+  updateStats();
   closeSheets();
   toast(`Saved “${recipe.title}”`);
   openDetail(recipe.id);
@@ -1401,7 +594,7 @@ $("#btn-reset-local").addEventListener("click", () => {
   recipes = mergeRecipes(baseRecipes, []);
   renderFilters();
   renderGrid();
-  updateLocalFlag();
+  updateStats();
   toast("Local recipes cleared");
 });
 
