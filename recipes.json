@@ -1,5 +1,56 @@
 [
   {
+    "id": "pepper-chicken",
+    "title": "THE Ultimate Pepper Chicken (Ghee Roast Style)",
+    "cuisine": "Indian",
+    "category": "Chicken",
+    "prepTime": 30,
+    "cookTime": 40,
+    "servings": 4,
+    "difficulty": "Medium",
+    "tags": ["chicken", "high-protein", "pepper", "one-pan", "low-carb"],
+    "description": "Restaurant-style pepper chicken — yogurt-marinated thighs, golden onions, dum-cooked (no stirring), finished with fresh roasted fennel-pepper powder and curry leaves. ~300 cal / 40g protein per serving.",
+    "videoLink": "",
+    "columns": [
+      {
+        "title": "Marinade",
+        "items": [
+          { "qty": "1 kg", "name": "boneless chicken thighs, washed & bite-size" },
+          { "qty": "1 tbsp", "name": "chili powder / Kashmiri chili powder" },
+          { "qty": "1 tbsp", "name": "coriander powder" },
+          { "qty": "1/2 tsp", "name": "turmeric powder" },
+          { "qty": "1 tsp", "name": "garam masala" },
+          { "qty": "1 tsp", "name": "salt (adjust to taste)" },
+          { "qty": "1/2 cup", "name": "thick curd / yogurt" }
+        ]
+      },
+      {
+        "title": "Cooking",
+        "items": [
+          { "qty": "2 tbsp", "name": "sesame oil (gingelly) — key for flavor" },
+          { "qty": "2 large", "name": "red onions, thinly sliced" },
+          { "qty": "2 sprigs", "name": "fresh curry leaves" }
+        ]
+      },
+      {
+        "title": "Fresh Pepper Powder",
+        "items": [
+          { "qty": "1.5 tbsp", "name": "fennel seeds / saunf" },
+          { "qty": "2 tbsp", "name": "whole black peppercorns" }
+        ]
+      }
+    ],
+    "steps": [
+      "Marinate: mix chicken with chili, coriander, turmeric, garam masala, salt, and yogurt. Rest 20–30 min.",
+      "Golden onions: heat sesame oil in a wide pan. Sauté sliced onions on medium until deep golden brown — don't rush.",
+      "Dum cook: add all marinated chicken on top of the onions, spread out. DO NOT STIR. Cover and cook medium-low 15 min so the chicken releases its own water.",
+      "Fresh masala: meanwhile toast fennel + peppercorns dry 2–3 min until aromatic. Cool slightly, grind coarse (not super fine).",
+      "Finish: uncover, add fennel-pepper powder + curry leaves. Mix. Cook uncovered 7–8 min until dark, dry, glossy, and roasty — not gravy. Adjust salt/pepper.",
+      "Serve: banana leaf energy — with hot ghee rice, chapati, parotta, roti, or as a wrap."
+    ],
+    "notes": "Thighs not breast. No water. No stirring for the first 15 min = caramelized onion + chicken flavor. Fresh pepper powder beats store-bought. Splash more sesame oil at the end for restaurant gloss."
+  },
+  {
     "id": "halal-cart",
     "title": "Halal Cart Chicken and Rice",
     "cuisine": "Street",
