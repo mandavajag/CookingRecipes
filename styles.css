@@ -879,11 +879,6 @@ body:has(.sheet.open) .fab-bar {
   text-transform: uppercase;
   color: var(--mute);
   margin-bottom: 14px;
-  position: sticky;
-  top: 0;
-  background: linear-gradient(180deg, var(--card) 75%, transparent);
-  padding: 4px 0 10px;
-  z-index: 1;
 }
 
 .detail-intro {
