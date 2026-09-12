@@ -1,6 +1,124 @@
 [
   {
-    "id": 1,
+    "id": "halal-cart",
+    "title": "Halal Cart Chicken and Rice",
+    "cuisine": "Street",
+    "category": "Plate",
+    "prepTime": 20,
+    "cookTime": 30,
+    "servings": 4,
+    "difficulty": "Easy",
+    "tags": ["chicken", "rice", "meal-prep", "sauce"],
+    "description": "NYC cart energy at home — charred spiced thighs, turmeric rice, and that iconic white sauce.",
+    "videoLink": "",
+    "columns": [
+      {
+        "title": "Chicken",
+        "items": [
+          { "qty": "1.5 lb", "name": "boneless skinless thighs, bite-size" },
+          { "qty": "2 tbsp", "name": "olive oil" },
+          { "qty": "1 tbsp", "name": "white vinegar" },
+          { "qty": "1", "name": "lemon, juiced" },
+          { "qty": "1 tsp", "name": "salt" },
+          { "qty": "1/2 tsp", "name": "black pepper" },
+          { "qty": "1 tsp", "name": "garlic powder" },
+          { "qty": "1 tsp", "name": "turmeric" },
+          { "qty": "1 tsp", "name": "paprika" },
+          { "qty": "1 tsp", "name": "cumin" }
+        ]
+      },
+      {
+        "title": "Yellow Rice",
+        "items": [
+          { "qty": "2 cups", "name": "basmati, rinsed" },
+          { "qty": "~3 cups", "name": "chicken stock" },
+          { "qty": "1 tsp", "name": "salt" },
+          { "qty": "1 tbsp", "name": "olive oil" },
+          { "qty": "2 tbsp", "name": "butter" },
+          { "qty": "1 tsp", "name": "turmeric" },
+          { "qty": "pinch", "name": "cinnamon" },
+          { "qty": "3 whole", "name": "cloves" },
+          { "qty": "pinch", "name": "dried cilantro" },
+          { "qty": "pinch", "name": "cumin powder" },
+          { "qty": "1/2 tsp", "name": "garlic powder" }
+        ]
+      },
+      {
+        "title": "White Sauce",
+        "items": [
+          { "qty": "1/2 cup", "name": "mayo" },
+          { "qty": "1/4 cup", "name": "sour cream" },
+          { "qty": "1 tbsp", "name": "lemon juice" },
+          { "qty": "1/2 tsp", "name": "garlic powder" },
+          { "qty": "", "name": "salt & pepper" },
+          { "qty": "to serve", "name": "white sauce, red hot sauce, parsley" }
+        ]
+      }
+    ],
+    "steps": [
+      "Marinate chicken with oil, vinegar, lemon & spices 20 min, then sear until charred and cooked through.",
+      "Toast rice with oil, butter, turmeric & spices, add stock, simmer covered 15 min until fluffy.",
+      "Whisk mayo, sour cream, lemon, garlic, salt & pepper; chill to thicken.",
+      "Pile rice, top with chicken, drizzle both sauces, scatter parsley."
+    ],
+    "notes": "Char on the chicken is the whole point — don't crowd the pan."
+  },
+  {
+    "id": "tomato-basil-soup",
+    "title": "High-Protein Tomato Basil Soup",
+    "cuisine": "Comfort",
+    "category": "Soup",
+    "prepTime": 15,
+    "cookTime": 60,
+    "servings": 3,
+    "difficulty": "Easy",
+    "tags": ["soup", "high-protein", "tomato", "blender"],
+    "description": "Shred Happens style — roasted veg blended with bone broth and cottage cheese. ~79g protein total.",
+    "videoLink": "https://www.facebook.com/share/r/18xje9WN51/",
+    "columns": [
+      {
+        "title": "Roast",
+        "items": [
+          { "qty": "2 cups", "name": "cherry tomatoes" },
+          { "qty": "1", "name": "yellow onion, quartered" },
+          { "qty": "1", "name": "red bell pepper, halved" },
+          { "qty": "1 head", "name": "garlic (or 5 cloves)" },
+          { "qty": "2 tbsp", "name": "olive oil" },
+          { "qty": "1 tsp", "name": "salt" },
+          { "qty": "1/2 tsp", "name": "black pepper" },
+          { "qty": "1 tsp", "name": "onion powder" },
+          { "qty": "1/2 tsp", "name": "chili flakes" },
+          { "qty": "1 tsp", "name": "paprika" }
+        ]
+      },
+      {
+        "title": "Blend",
+        "items": [
+          { "qty": "2 cups", "name": "bone broth" },
+          { "qty": "1 cup", "name": "cottage cheese (high protein)" },
+          { "qty": "1 handful", "name": "fresh basil" },
+          { "qty": "", "name": "roasted veg from sheet pan" }
+        ]
+      },
+      {
+        "title": "Garnish",
+        "items": [
+          { "qty": "drizzle", "name": "olive oil or cream" },
+          { "qty": "pinch", "name": "fresh basil, chopped" },
+          { "qty": "optional", "name": "parmesan" }
+        ]
+      }
+    ],
+    "steps": [
+      "Sheet pan tomatoes, onion, pepper, garlic with oil + spices.",
+      "Roast at 400°F for 60 min till caramelized and tender.",
+      "Blend roasted veg with bone broth + cottage cheese + basil till smooth and creamy.",
+      "Bowl it up — oil/cream drizzle, fresh basil, parmesan optional."
+    ],
+    "notes": "Roast until deeply caramelized — pale veg = flat soup."
+  },
+  {
+    "id": "carbonara",
     "title": "Spaghetti Carbonara",
     "cuisine": "Italian",
     "category": "Pasta",
@@ -9,29 +127,29 @@
     "servings": 4,
     "difficulty": "Medium",
     "tags": ["pasta", "eggs", "cheese", "quick"],
-    "description": "The real Roman carbonara — no cream, no shortcuts. Guanciale rendered slow, eggs tempered off heat, Pecorino folded in to form a glossy, black-peppered silk.",
+    "description": "Real Roman carbonara — no cream. Guanciale, tempered eggs, Pecorino silk.",
     "ingredients": [
       "400g spaghetti",
-      "200g guanciale (or pancetta as substitute)",
+      "200g guanciale (or pancetta)",
       "3 large eggs + 2 yolks",
       "100g Pecorino Romano, finely grated",
       "50g Parmigiano-Reggiano, grated",
-      "Plenty of freshly cracked black pepper",
+      "Freshly cracked black pepper",
       "Kosher salt, for pasta water"
     ],
-    "instructions": [
+    "steps": [
       "Bring a large pot of heavily salted water to a rolling boil.",
-      "Cut guanciale into lardons about 1cm thick. Start in a cold pan over medium-low heat so the fat renders slowly — about 8 minutes — until crispy at the edges but still chewy inside. Remove from heat; keep warm.",
-      "In a bowl, whisk eggs, yolks, and three-quarters of the cheese. Season aggressively with black pepper.",
-      "Cook spaghetti until 90 seconds shy of al dente. Reserve 1 full cup of starchy pasta water before draining.",
-      "Add drained pasta to the guanciale pan off the heat. Toss to coat every strand in the rendered fat.",
-      "Pour the egg mixture over the pasta, tossing constantly. Add pasta water a splash at a time, tossing until a glossy, creamy sauce coats the pasta without scrambling. Work quickly.",
-      "Serve immediately on warm plates. Top with remaining cheese and a final crack of pepper."
+      "Cut guanciale into lardons. Render in a cold pan over medium-low ~8 min until crispy at edges. Keep warm off heat.",
+      "Whisk eggs, yolks, and most of the cheese. Season hard with black pepper.",
+      "Cook spaghetti until 90 seconds shy of al dente. Reserve 1 cup pasta water.",
+      "Toss drained pasta in guanciale fat off heat.",
+      "Pour egg mixture over pasta, tossing constantly. Splash pasta water until glossy. Don't scramble.",
+      "Plate warm. Finish with cheese and pepper."
     ],
-    "notes": "Off-heat is non-negotiable. The residual heat of the pasta finishes the eggs gently. If your sauce tightens up, a splash more pasta water loosens it instantly."
+    "notes": "Off-heat is non-negotiable. Residual heat finishes the eggs."
   },
   {
-    "id": 2,
+    "id": "tikka-masala",
     "title": "Chicken Tikka Masala",
     "cuisine": "Indian",
     "category": "Curry",
@@ -39,65 +157,31 @@
     "cookTime": 40,
     "servings": 4,
     "difficulty": "Medium",
-    "tags": ["chicken", "curry", "tomato", "spice", "dinner"],
-    "description": "Char-edged chicken tikka folded into a silky tomato-cream masala built on toasted whole spices. The kind of dish that fills the kitchen with warmth before you've even sat down.",
+    "tags": ["chicken", "curry", "dinner"],
+    "description": "Char-edged tikka in a silky tomato-cream masala built on toasted spices.",
     "ingredients": [
-      "700g boneless chicken thighs, cut into 4cm pieces",
-      "For marinade: 180g full-fat yogurt, 2 tsp garam masala, 1½ tsp cumin, 1 tsp turmeric, 1 tsp Kashmiri chili powder, 1 tsp salt, 2 tbsp vegetable oil",
-      "For masala: 3 tbsp ghee, 1 large white onion finely diced, 6 garlic cloves minced, 25g fresh ginger grated",
-      "2 tsp cumin seeds, 1 tsp coriander seeds (toasted and ground)",
-      "1 tsp turmeric, 2 tsp garam masala, 1½ tsp Kashmiri chili powder",
-      "400g can crushed tomatoes",
+      "700g boneless chicken thighs, 4cm pieces",
+      "Marinade: 180g yogurt, 2 tsp garam masala, 1½ tsp cumin, 1 tsp turmeric, 1 tsp Kashmiri chili, 1 tsp salt, 2 tbsp oil",
+      "3 tbsp ghee, 1 large onion finely diced",
+      "6 garlic cloves minced, 25g ginger grated",
+      "2 tsp cumin seeds, 1 tsp coriander seeds (toasted, ground)",
+      "1 tsp turmeric, 2 tsp garam masala, 1½ tsp Kashmiri chili",
+      "400g crushed tomatoes",
       "150ml heavy cream",
-      "Salt to taste",
-      "Handful fresh cilantro to finish"
+      "Salt, fresh cilantro"
     ],
-    "instructions": [
-      "Mix all marinade ingredients with the chicken. Cover and refrigerate minimum 4 hours, ideally overnight.",
-      "Broil or grill chicken on highest setting until deeply charred in spots — 8–10 minutes per side. Set aside. Don't crowd the pan.",
-      "Melt ghee in a heavy-bottomed pan over medium heat. Add cumin seeds and let them splutter 30 seconds.",
-      "Add onion with a pinch of salt. Cook 12–15 minutes stirring often until deeply golden — don't rush this.",
-      "Add garlic and ginger. Cook 2 minutes until fragrant.",
-      "Add ground spices. Cook 1 minute, stirring, until the mixture smells toasty and darkens slightly.",
-      "Pour in crushed tomatoes. Cook uncovered 15 minutes, stirring occasionally, until oil separates and sauce is thick and deep red.",
-      "Add charred chicken pieces. Stir to coat. Pour in cream. Simmer 8 minutes.",
-      "Adjust salt. Finish with torn cilantro."
+    "steps": [
+      "Marinate chicken min 4 hours (overnight best).",
+      "Broil/grill until deeply charred, 8–10 min per side.",
+      "Ghee + cumin seeds 30 sec. Onion 12–15 min until deep gold.",
+      "Garlic + ginger 2 min. Ground spices 1 min.",
+      "Tomatoes 15 min uncovered until oil separates.",
+      "Add chicken + cream. Simmer 8 min. Cilantro finish."
     ],
-    "notes": "Kashmiri chili gives the color without excessive heat. The char on the chicken is flavor — don't skip the broil step."
+    "notes": "Char is flavor — don't skip the broil."
   },
   {
-    "id": 3,
-    "title": "Baja Fish Tacos",
-    "cuisine": "Mexican",
-    "category": "Tacos",
-    "prepTime": 25,
-    "cookTime": 15,
-    "servings": 4,
-    "difficulty": "Easy",
-    "tags": ["fish", "tacos", "beer batter", "lime", "cabbage"],
-    "description": "Crispy beer-battered cod in warm corn tortillas with crunchy cabbage slaw, pickled jalapeños, and a smoky chipotle crema. Best eaten standing at the kitchen counter.",
-    "ingredients": [
-      "600g cod or mahi-mahi fillets, cut into 8cm strips",
-      "For batter: 150g all-purpose flour, 1 tsp baking powder, 1 tsp cumin, ½ tsp garlic powder, ½ tsp salt, 240ml cold lager beer",
-      "Vegetable oil for frying",
-      "For slaw: 200g shredded green cabbage, 1 lime juiced, 1 tbsp apple cider vinegar, pinch sugar, salt",
-      "For chipotle crema: 150g Mexican crema or sour cream, 2 chipotle peppers in adobo (minced), 1 garlic clove (grated), lime juice",
-      "12 small corn tortillas",
-      "Pickled jalapeños, lime wedges, and fresh cilantro to serve"
-    ],
-    "instructions": [
-      "Toss cabbage with lime juice, vinegar, sugar, and salt. Let sit 20 minutes; it will soften and brighten.",
-      "Whisk crema ingredients together. Season with salt and lime. Refrigerate.",
-      "Whisk flour, baking powder, cumin, garlic powder, and salt. Pour in cold beer and stir until just combined — lumps are fine. Batter should coat a spoon.",
-      "Heat 4cm of oil in a heavy pot to 190°C (375°F).",
-      "Pat fish dry. Dip in batter, let excess drip off, and lower carefully into oil. Fry in batches — don't crowd — 3 minutes per side until deeply golden. Drain on a rack.",
-      "Warm tortillas directly on a gas flame or dry skillet until charred in spots.",
-      "Build each taco: slaw, fish, chipotle crema, pickled jalapeños, cilantro. Squeeze lime over everything."
-    ],
-    "notes": "Cold beer = crispier batter. The batter goes in the cold fridge while oil heats. Don't overcrowd the pot or the temperature drops and you get soggy fish."
-  },
-  {
-    "id": 4,
+    "id": "shakshuka",
     "title": "Shakshuka",
     "cuisine": "Middle Eastern",
     "category": "Eggs",
@@ -105,93 +189,28 @@
     "cookTime": 25,
     "servings": 2,
     "difficulty": "Easy",
-    "tags": ["eggs", "tomato", "vegetarian", "breakfast", "one-pan"],
-    "description": "Eggs poached directly in a spiced tomato and pepper sauce. One pan, twenty minutes, and you have something that feels celebratory for a Tuesday morning.",
+    "tags": ["eggs", "tomato", "one-pan", "breakfast"],
+    "description": "Eggs poached in spiced tomato-pepper sauce. One pan, celebratory Tuesday energy.",
     "ingredients": [
       "2 tbsp olive oil",
-      "1 large white onion, diced",
+      "1 large onion, diced",
       "1 red bell pepper, diced",
       "4 garlic cloves, thinly sliced",
-      "2 tsp cumin, 1 tsp smoked paprika, ½ tsp caraway seeds",
-      "Pinch of cayenne or Aleppo pepper",
-      "400g can crushed tomatoes",
+      "2 tsp cumin, 1 tsp smoked paprika, ½ tsp caraway, pinch cayenne",
+      "400g crushed tomatoes",
       "1 tsp sugar",
-      "Salt and pepper",
       "4–6 large eggs",
       "100g feta, crumbled",
-      "Fresh parsley and crusty bread to serve"
+      "Parsley + crusty bread"
     ],
-    "instructions": [
-      "Heat olive oil in a wide, heavy skillet over medium heat. Add onion and pepper with a pinch of salt. Cook 8 minutes until very soft.",
-      "Add garlic and all spices. Cook 1–2 minutes until fragrant.",
-      "Pour in tomatoes and sugar. Stir and simmer 10 minutes until sauce is thick and deeply flavored. Taste and season.",
-      "Use a spoon to make wells in the sauce. Crack one egg into each well.",
-      "Cover the pan and cook 5–8 minutes until whites are just set but yolks are still runny. Check frequently.",
-      "Scatter crumbled feta over the top. Finish with parsley and a drizzle of olive oil.",
-      "Serve directly from the pan with bread for dipping."
+    "steps": [
+      "Onion + pepper in oil, 8 min until soft.",
+      "Garlic + spices 1–2 min.",
+      "Tomatoes + sugar, simmer 10 min until thick.",
+      "Make wells, crack eggs in.",
+      "Cover 5–8 min until whites just set, yolks runny.",
+      "Feta, parsley, olive oil. Serve from the pan."
     ],
-    "notes": "The difference between a perfect shakshuka and an overcooked one is about 2 minutes. Pull it when the whites look barely set — residual heat finishes them."
-  },
-  {
-    "id": 5,
-    "title": "Classic French Omelette",
-    "cuisine": "French",
-    "category": "Eggs",
-    "prepTime": 5,
-    "cookTime": 3,
-    "servings": 1,
-    "difficulty": "Hard",
-    "tags": ["eggs", "butter", "french", "quick", "technique"],
-    "description": "The French omelette is a technique benchmark disguised as breakfast. Pale yellow, creamy inside, folds without a seam. Three eggs, two minutes, and your full attention.",
-    "ingredients": [
-      "3 large eggs, very fresh",
-      "15g cold unsalted butter",
-      "Small pinch fine salt",
-      "White pepper",
-      "Optional fillings: fresh herbs, Gruyère, goat cheese"
-    ],
-    "instructions": [
-      "Crack eggs into a bowl. Beat vigorously with a fork until completely uniform — no streaks of white. Season with salt and white pepper.",
-      "Heat a 20cm non-stick pan over high heat. Add butter. When it foams and the foam just begins to subside (don't let it brown), pour in the eggs.",
-      "Immediately stir with a fork using quick small circles while shaking the pan back and forth. Keep everything moving for about 30 seconds.",
-      "When the eggs are still slightly liquid on top (creamy, not set), stop stirring. Add any filling down the center.",
-      "Tilt the pan 45 degrees. Use the fork to fold the top third of the omelette over the filling.",
-      "Roll the omelette out onto a warm plate — the bottom fold completes itself as it tips over the pan edge. The seam should be on the bottom.",
-      "The omelette should be pale yellow with no browning."
-    ],
-    "notes": "Everything happens in under 3 minutes. Have the plate warm, your filling ready, and your full attention on the pan. Practice makes perfect — this is worth making ten times."
-  },
-  {
-    "id": 6,
-    "title": "Miso Ramen",
-    "cuisine": "Japanese",
-    "category": "Soup",
-    "prepTime": 20,
-    "cookTime": 30,
-    "servings": 2,
-    "difficulty": "Medium",
-    "tags": ["soup", "noodles", "miso", "pork", "warming"],
-    "description": "A rich, deeply savory miso tare stirred into a dashi-and-pork broth, with wavy ramen noodles, a soft egg, corn, and crispy chili-sesame garlic oil pooled on top.",
-    "ingredients": [
-      "For tare: 80g white miso, 2 tbsp sake, 1 tbsp mirin, 1 tbsp soy sauce, 1 tsp sesame paste",
-      "For broth: 1L dashi (or light chicken stock), 500ml pork or chicken stock, 2 tsp toasted sesame oil",
-      "200g ground pork",
-      "1 tbsp gochujang or chili bean paste",
-      "2 garlic cloves, 25g ginger (grated)",
-      "200g fresh or dried ramen noodles",
-      "2 soft-boiled eggs, halved",
-      "Toppings: corn kernels, scallion, nori, toasted sesame seeds, bamboo shoots",
-      "Chili oil or sesame oil to finish"
-    ],
-    "instructions": [
-      "Soft-boil eggs: 7 minutes in boiling water, ice bath immediately, peel and marinate in 2:1 soy-mirin for at least 1 hour.",
-      "Whisk all tare ingredients together until smooth. Set aside.",
-      "Brown ground pork in a dry pan over high heat, breaking it up, until crispy in spots. Add gochujang, garlic, and ginger. Cook 2 more minutes. Set aside.",
-      "Bring dashi and pork stock to a gentle simmer. Keep hot.",
-      "Cook noodles according to package. Drain; divide between 2 bowls.",
-      "Add 3 tablespoons of tare to each bowl. Ladle hot broth over to fill — stir to dissolve the tare.",
-      "Top with pork, halved egg, corn, bamboo shoots, and scallion. Drizzle with chili oil and sesame oil."
-    ],
-    "notes": "The tare is the soul of the bowl — make extra and keep it in the fridge for a week. The broth should be hot when it hits the tare, not simmering in it."
+    "notes": "Pull when whites look barely set — residual heat finishes them."
   }
 ]
