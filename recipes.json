@@ -1,5 +1,62 @@
 [
   {
+    "id": "elote-chicken-pasta-salad",
+    "title": "51g Protein Elote Chicken Pasta Salad",
+    "cuisine": "Mexican",
+    "category": "Salad",
+    "prepTime": 20,
+    "cookTime": 30,
+    "servings": 5,
+    "difficulty": "Easy",
+    "tags": ["pasta", "high-protein", "meal-prep", "chicken", "elote", "cold"],
+    "description": "Smoky taco-seasoned chicken, charred corn, tri-color rotini, Cotija, and creamy Tajín Greek yogurt sauce. Cold pasta salad energy — 51g protein per bowl, 5 meal-prep containers.",
+    "videoLink": "https://www.facebook.com/share/r/18ZqcYKfEv/?mibextid=wwXIfr",
+    "columns": [
+      {
+        "title": "Protein",
+        "items": [
+          { "qty": "1.5–2 lb", "name": "chicken breasts (2–3 large)" },
+          { "qty": "generous", "name": "chili powder, smoked paprika, garlic powder, onion powder, cumin, salt + pepper" }
+        ]
+      },
+      {
+        "title": "Pasta & Corn",
+        "items": [
+          { "qty": "12 oz", "name": "dry tri-color rotini (1 box)" },
+          { "qty": "3 cups", "name": "corn kernels (frozen or drained canned)" }
+        ]
+      },
+      {
+        "title": "Fresh Mix",
+        "items": [
+          { "qty": "1/2 large", "name": "red onion, diced" },
+          { "qty": "1 bunch", "name": "cilantro, chopped" },
+          { "qty": "3/4 cup", "name": "crumbled Cotija or queso fresco" },
+          { "qty": "2", "name": "limes, juiced" }
+        ]
+      },
+      {
+        "title": "Creamy Sauce",
+        "items": [
+          { "qty": "1/2 cup", "name": "plain Greek yogurt" },
+          { "qty": "1/4 cup", "name": "light mayo" },
+          { "qty": "1 tbsp", "name": "Tajín (+ more for topping)" },
+          { "qty": "1 tsp", "name": "chili powder / paprika" },
+          { "qty": "1/2 tsp", "name": "cumin" },
+          { "qty": "1/2 tsp", "name": "garlic powder" }
+        ]
+      }
+    ],
+    "steps": [
+      "Season chicken heavily both sides. Sear on a hot griddle/flat-top with oil spray until charred and 165°F inside. Rest, then dice.",
+      "Boil rotini in salted water until al dente. Drain.",
+      "Char corn: hot dry pan, no liquid. Sit 4–5 min until golden; stir once.",
+      "Huge bowl: rotini, diced chicken, charred corn, cilantro, red onion, Cotija. Lime juice, Greek yogurt, mayo, spice mix + Tajín. Mix until creamy and coated. More Tajín on top.",
+      "Divide into 5 containers. Fridge 4–5 days. Serve cold / room temp."
+    ],
+    "notes": "Char on chicken + corn is the flavor. Don't skip Tajín. Meal-prep king — 5 bowls like the reel."
+  },
+  {
     "id": "loaded-sweet-potato-elote",
     "title": "Loaded Sweet Potato with Elote + Taco Beef",
     "cuisine": "Mexican",
