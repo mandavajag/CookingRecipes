@@ -1,5 +1,60 @@
 [
   {
+    "id": "loaded-sweet-potato-elote",
+    "title": "Loaded Sweet Potato with Elote + Taco Beef",
+    "cuisine": "Mexican",
+    "category": "Bowl",
+    "prepTime": 20,
+    "cookTime": 45,
+    "servings": 4,
+    "difficulty": "Easy",
+    "tags": ["bowl", "high-protein", "meal-prep", "sweet-potato", "beef", "elote"],
+    "description": "Baked sweet potato half stuffed with seasoned lean taco beef and creamy Mexican street corn salad. 47g protein per bowl — meal-prep tray friendly.",
+    "videoLink": "https://www.facebook.com/share/r/1K4J37gTf7/?mibextid=wwXIfr",
+    "columns": [
+      {
+        "title": "Sweet Potatoes",
+        "items": [
+          { "qty": "4 medium", "name": "sweet potatoes" },
+          { "qty": "drizzle", "name": "olive oil spray / oil" },
+          { "qty": "to taste", "name": "salt + black pepper" }
+        ]
+      },
+      {
+        "title": "Elote Corn Salad",
+        "items": [
+          { "qty": "3–4 cups", "name": "sweet corn kernels (thawed frozen or drained canned)" },
+          { "qty": "1/4 cup", "name": "plain Greek yogurt" },
+          { "qty": "2 tbsp", "name": "light mayo" },
+          { "qty": "1/2 cup", "name": "crumbled Cotija cheese" },
+          { "qty": "1/4 cup", "name": "red onion, finely diced" },
+          { "qty": "1", "name": "jalapeño, finely diced" },
+          { "qty": "handful", "name": "cilantro, chopped" },
+          { "qty": "2", "name": "limes, juiced" },
+          { "qty": "to taste", "name": "Tajín, chili powder, garlic powder, salt + pepper" }
+        ]
+      },
+      {
+        "title": "Taco Beef",
+        "items": [
+          { "qty": "1 lb", "name": "lean ground beef (93/7 or 96/4)" },
+          { "qty": "1 tsp", "name": "cumin (or packet taco seasoning)" },
+          { "qty": "1 tsp", "name": "garlic powder" },
+          { "qty": "1/2 tsp", "name": "onion powder" },
+          { "qty": "to taste", "name": "salt + pepper" },
+          { "qty": "to serve", "name": "extra lime, cilantro, Tajín, Cotija" }
+        ]
+      }
+    ],
+    "steps": [
+      "Roast: halve sweet potatoes lengthwise. Oil, salt, pepper. Cut-side down on a sheet pan. Bake 425°F / 220°C for 35–45 min until soft and caramelized.",
+      "Elote: mix corn, Greek yogurt, mayo, most of the Cotija, red onion, jalapeño, cilantro, lime juice. Season with Tajín, chili powder, garlic powder, salt, pepper. Taste — creamy, salty, limey, spicy.",
+      "Beef: oil a pan, brown lean ground beef with cumin/garlic/onion (or taco seasoning), salt, pepper. Cook until no pink. Drain if needed.",
+      "Assemble: smash one sweet potato half open in a bowl. ~4 oz beef, big scoop of corn salad. Finish with Cotija, Tajín, cilantro, lime wedge."
+    ],
+    "notes": "Makes 4 bowls on one tray — meal-prep friendly. Leaner beef = higher protein. Elote should taste aggressively limey/Tajín before it hits the potato."
+  },
+  {
     "id": "sifa-corbasi",
     "title": "Şifa Çorbası (Creamy Chicken & Vegetable Soup)",
     "cuisine": "Turkish",
