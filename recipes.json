@@ -1,5 +1,53 @@
 [
   {
+    "id": "sifa-corbasi",
+    "title": "Şifa Çorbası (Creamy Chicken & Vegetable Soup)",
+    "cuisine": "Turkish",
+    "category": "Soup",
+    "prepTime": 15,
+    "cookTime": 35,
+    "servings": 4,
+    "difficulty": "Easy",
+    "tags": ["soup", "high-protein", "chicken", "blender", "dairy-free", "gluten-free"],
+    "description": "Turkish healing soup — chicken breast layered over veg, simmered, shredded, then the pot blended silky with no cream or flour. Finish with turmeric, paprika, parsley, and lemon. ~280–320 cal / ~28g protein per bowl.",
+    "videoLink": "https://www.facebook.com/share/r/1CAoXt8yV2/?mibextid=wwXIfr",
+    "columns": [
+      {
+        "title": "Pot",
+        "items": [
+          { "qty": "700g", "name": "chicken breast (~1.5 lb / 2 large breasts)" },
+          { "qty": "2 medium", "name": "potatoes, peeled and cubed (Yukon Gold if possible)" },
+          { "qty": "1 large", "name": "carrot, chopped" },
+          { "qty": "1 large", "name": "onion, quartered" },
+          { "qty": "1", "name": "kapya / red bell pepper, sliced" },
+          { "qty": "2", "name": "tomatoes, diced" },
+          { "qty": "3–4", "name": "garlic cloves" },
+          { "qty": "4–5 cups", "name": "hot water to cover (or bone broth)" },
+          { "qty": "2–3 tbsp", "name": "olive oil (EVOO)" }
+        ]
+      },
+      {
+        "title": "Finish",
+        "items": [
+          { "qty": "to taste", "name": "salt & black pepper" },
+          { "qty": "~1 tsp", "name": "turmeric" },
+          { "qty": "~1 tsp", "name": "paprika / chili flake" },
+          { "qty": "handful", "name": "fresh parsley, chopped" },
+          { "qty": "1/2", "name": "lemon, for serving" }
+        ]
+      }
+    ],
+    "steps": [
+      "Layer in a large pot: potatoes, carrots, red pepper, onion, garlic, and tomatoes. Lay whole chicken breasts on top.",
+      "Drizzle olive oil, pour hot water to just cover. Lid on — simmer until chicken and potatoes are fully tender, ~25–30 min.",
+      "Pull chicken out with tongs; shred in a bowl with two forks.",
+      "Blend remaining vegetables + broth in the pot (immersion blender) until smooth and bright orange-creamy.",
+      "Return shredded chicken. Season with salt, turmeric, paprika, black pepper, and a big handful of parsley. Stir 2–3 min.",
+      "Ladle into bowls and squeeze fresh lemon on top — that's key."
+    ],
+    "notes": "Creaminess is 100% from blended potato/carrot/tomato — no cream, no flour. Air-chilled chicken stays juicier. Kapya → red bell is fine. Hot water works; bone broth upgrades depth. Gluten-free, dairy-free, recovery-friendly."
+  },
+  {
     "id": "pepper-chicken",
     "title": "THE Ultimate Pepper Chicken (Ghee Roast Style)",
     "cuisine": "Indian",
