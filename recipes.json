@@ -1,5 +1,78 @@
 [
   {
+    "id": "punjabi-masala-fried-chicken",
+    "title": "Punjabi Masala Fried Chicken (Village Style)",
+    "cuisine": "Indian",
+    "category": "Chicken",
+    "prepTime": 30,
+    "cookTime": 35,
+    "servings": 4,
+    "difficulty": "Medium",
+    "tags": ["chicken", "punjabi", "masala", "thighs", "roti"],
+    "description": "Rustic village-style thigh chicken — turmeric marinade, classic Punjabi onion-tomato masala, covered cook, then high-heat bhunao until the masala clings thick. Finish with green chili, coriander, ginger, butter.",
+    "videoLink": "https://www.facebook.com/share/v/1DdPnzc6PS/?mibextid=wwXIfr",
+    "columns": [
+      {
+        "title": "Marinade",
+        "items": [
+          { "qty": "1 kg", "name": "chicken thighs, medium pieces" },
+          { "qty": "1 tsp", "name": "turmeric powder" },
+          { "qty": "1 tbsp", "name": "ginger-garlic paste" },
+          { "qty": "1 tsp", "name": "salt" },
+          { "qty": "1 tbsp", "name": "lemon juice / vinegar" }
+        ]
+      },
+      {
+        "title": "Masala Base",
+        "items": [
+          { "qty": "3 tbsp", "name": "oil" },
+          { "qty": "1 small cube", "name": "butter" },
+          { "qty": "2 large", "name": "red onions, finely chopped" },
+          { "qty": "1 tbsp", "name": "chopped garlic" },
+          { "qty": "1 tbsp", "name": "chopped ginger" },
+          { "qty": "2–3", "name": "green chilies, finely chopped" },
+          { "qty": "1 cup", "name": "coriander leaves, finely chopped (divided)" },
+          { "qty": "2 large", "name": "tomatoes, finely chopped" },
+          { "qty": "~1 cup", "name": "warm water (for cooking chicken)" }
+        ]
+      },
+      {
+        "title": "Spice Powders",
+        "items": [
+          { "qty": "1 tsp", "name": "Kashmiri red chili powder (color)" },
+          { "qty": "1 tsp", "name": "red chili powder / paprika (heat)" },
+          { "qty": "1 tbsp", "name": "coriander powder" },
+          { "qty": "1 tsp", "name": "cumin powder" },
+          { "qty": "1 tsp", "name": "garam masala" },
+          { "qty": "1/2 tsp", "name": "cracked black pepper" },
+          { "qty": "1 tsp", "name": "kasoori methi (dried fenugreek)" },
+          { "qty": "1/2 tsp", "name": "turmeric powder" },
+          { "qty": "to taste", "name": "salt" }
+        ]
+      },
+      {
+        "title": "Finish",
+        "items": [
+          { "qty": "2–3", "name": "green chilies, sliced" },
+          { "qty": "handful", "name": "fresh coriander, chopped" },
+          { "qty": "few strips", "name": "ginger, julienned" },
+          { "qty": "1 tsp", "name": "butter" }
+        ]
+      }
+    ],
+    "steps": [
+      "Marinate thighs with turmeric, salt, ginger-garlic, lemon. Rest 20–30 min.",
+      "Heat oil + butter. Fry onions 2–3 min on medium until light golden (not fully browned).",
+      "Add chopped garlic, green chilies, half the coriander. Fry 1 min.",
+      "Stir in both chili powders, coriander, cumin, black pepper, kasoori methi, turmeric, garam masala — 30 sec so spices roast, don't burn.",
+      "Add tomatoes; cook until mushy and oil separates. Splash of water if needed. This is the Punjabi curry base.",
+      "Add chicken; coat and sear 3–4 min. Add warm water almost covering (~1 cup). Low heat, cover 12–15 min.",
+      "Bhunao: lid off, high flame 4–5 min to dry excess water — thick clinging masala, not gravy.",
+      "Finish with sliced green chilies, lots of coriander, ginger julienne, knob of butter. Serve hot with roti / naan."
+    ],
+    "notes": "Don't fully brown the onions — light golden only. Bhunao is the 'fried' part: dry it until masala coats. Proper rustic, village energy."
+  },
+  {
     "id": "cajun-chicken-pasta",
     "title": "Cajun Chicken Pasta (Creamy Rigatoni Meal Prep)",
     "cuisine": "American",
