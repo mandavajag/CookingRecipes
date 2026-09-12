@@ -1,5 +1,63 @@
 [
   {
+    "id": "cajun-chicken-pasta",
+    "title": "Cajun Chicken Pasta (Creamy Rigatoni Meal Prep)",
+    "cuisine": "American",
+    "category": "Pasta",
+    "prepTime": 15,
+    "cookTime": 30,
+    "servings": 6,
+    "difficulty": "Easy",
+    "tags": ["pasta", "chicken", "cajun", "meal-prep", "creamy", "one-pan"],
+    "description": "One-skillet Cajun chicken with peppers, onion, and rigatoni simmered in broth, finished with cream cheese + Parmesan into a thick orange creamy sauce. Six meal-prep bowls.",
+    "videoLink": "https://www.facebook.com/share/v/1DNCxWytGV/?mibextid=wwXIfr",
+    "columns": [
+      {
+        "title": "Chicken & Seasoning",
+        "items": [
+          { "qty": "~1.5 lb", "name": "chicken breasts (3–4), flattened then cubed" },
+          { "qty": "1 tsp", "name": "kosher salt" },
+          { "qty": "1 tsp", "name": "onion powder" },
+          { "qty": "1 tsp", "name": "garlic powder" },
+          { "qty": "1 tbsp", "name": "paprika" },
+          { "qty": "1 tsp", "name": "Italian seasoning" },
+          { "qty": "1 tbsp", "name": "Cajun seasoning" },
+          { "qty": "spray", "name": "olive oil" }
+        ]
+      },
+      {
+        "title": "Veggies & Pasta",
+        "items": [
+          { "qty": "1", "name": "red bell pepper, diced" },
+          { "qty": "1", "name": "orange bell pepper, diced" },
+          { "qty": "1 medium", "name": "white onion, diced" },
+          { "qty": "2 tsp", "name": "minced garlic" },
+          { "qty": "12 oz", "name": "dry rigatoni / ziti (~3 cups dry)" },
+          { "qty": "32 oz", "name": "reduced-sodium chicken broth (1 carton)" },
+          { "qty": "~1 cup", "name": "water (to just cover pasta)" }
+        ]
+      },
+      {
+        "title": "Creamy Finish",
+        "items": [
+          { "qty": "8 oz", "name": "1/3 less fat cream cheese (1 block)" },
+          { "qty": "1/2 cup", "name": "shredded Parmesan or Italian blend" },
+          { "qty": "pinch", "name": "salt to taste after" }
+        ]
+      }
+    ],
+    "steps": [
+      "Flatten breasts, cube bite-size. Season with salt, onion powder, garlic powder, paprika, Italian seasoning, Cajun. Mix by hand.",
+      "Oil a hot skillet. Sear chicken until browned, ~5–6 min.",
+      "Add diced peppers and onion; stir. Add minced garlic; stir.",
+      "Add dry rigatoni. Pour in broth + ~1 cup water until pasta is just covered. Pinch of salt. Bring to boil.",
+      "Cover, simmer 12–15 min, stirring once, until pasta is tender and most liquid is absorbed.",
+      "Lower heat. Stir in cream cheese block + shredded cheese until melted into a thick orange creamy sauce.",
+      "Scoop into 6 bowls. Fridge 4–5 days; reheat with a splash of water or broth."
+    ],
+    "notes": "One-pan meal prep. Pasta should be just covered — not swimming. Cream cheese melts into the residual broth; stir until glossy and coated."
+  },
+  {
     "id": "street-corn-chicken-rice-bowl",
     "title": "Street Corn Bowl | 55g Protein",
     "cuisine": "Mexican",
