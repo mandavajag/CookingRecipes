@@ -1,5 +1,63 @@
 [
   {
+    "id": "street-corn-chicken-rice-bowl",
+    "title": "Street Corn Bowl | 55g Protein",
+    "cuisine": "Mexican",
+    "category": "Bowl",
+    "prepTime": 20,
+    "cookTime": 30,
+    "servings": 5,
+    "difficulty": "Easy",
+    "tags": ["bowl", "high-protein", "meal-prep", "chicken", "elote", "rice"],
+    "description": "Charred taco-spiced chicken over white rice with creamy Cotija elote salad and Tajín. Five kraft-bowl meal preps — 55g protein each.",
+    "videoLink": "https://www.facebook.com/share/r/1Bhkd2wzrz/?mibextid=wwXIfr",
+    "columns": [
+      {
+        "title": "Chicken",
+        "items": [
+          { "qty": "~1.5 lb", "name": "chicken breasts (3 large)" },
+          { "qty": "1 tbsp", "name": "chili powder" },
+          { "qty": "1 tbsp", "name": "smoked paprika" },
+          { "qty": "1 tsp", "name": "cumin" },
+          { "qty": "1 tsp", "name": "garlic powder" },
+          { "qty": "1 tsp", "name": "onion powder" },
+          { "qty": "1/2 tsp", "name": "black pepper" },
+          { "qty": "1/2 tsp", "name": "salt" },
+          { "qty": "spray", "name": "olive oil" }
+        ]
+      },
+      {
+        "title": "Elote Salad",
+        "items": [
+          { "qty": "2 cans (15 oz)", "name": "sweet corn, drained" },
+          { "qty": "1 cup", "name": "plain non-fat Greek yogurt" },
+          { "qty": "2–3 tbsp", "name": "light mayo" },
+          { "qty": "3/4–1 cup", "name": "crumbled Cotija" },
+          { "qty": "1/2 large", "name": "red onion, finely diced" },
+          { "qty": "1–2", "name": "jalapeños, finely diced" },
+          { "qty": "handful", "name": "cilantro, chopped" },
+          { "qty": "2", "name": "limes, juiced" },
+          { "qty": "to taste", "name": "kosher salt, chili powder, Tajín (1–2 tbsp)" }
+        ]
+      },
+      {
+        "title": "Base & Serve",
+        "items": [
+          { "qty": "3–4 cups", "name": "cooked white rice (~3/4 cup per bowl)" },
+          { "qty": "to finish", "name": "extra Tajín" }
+        ]
+      }
+    ],
+    "steps": [
+      "Flatten chicken slightly for even cooking. Coat in chili powder, smoked paprika, cumin, garlic, onion powder, salt, pepper.",
+      "Cook in a hot skillet/electric pan with oil spray, lid on medium-high, ~6–7 min per side until charred and 165°F. Rest, cube.",
+      "Elote: mix corn, Greek yogurt, mayo, Cotija, red onion. Fold in jalapeño, cilantro, lime. Season with salt, chili powder, 1–2 tbsp Tajín until creamy.",
+      "Assemble 5 bowls: rice → chicken → big scoop of street corn → more Tajín on top.",
+      "Fridge 4–5 days."
+    ],
+    "notes": "Same elote vibe as the pasta salad / sweet potato bowls, but rice base. Flatten chicken for even sear. 55g protein per bowl as labeled in the reel."
+  },
+  {
     "id": "elote-chicken-pasta-salad",
     "title": "51g Protein Elote Chicken Pasta Salad",
     "cuisine": "Mexican",
