@@ -998,6 +998,128 @@ body:has(.sheet.open) .fab-bar {
   color: var(--ink);
 }
 
+/* ── Subtle ingredient edit ──────────────────────────────── */
+.ing-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ing-head-row .section-label {
+  margin: 0;
+}
+
+.edit-toggle {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mute);
+  background: var(--paper-warm);
+  border: 1px solid var(--line);
+  transition: color .15s, border-color .15s, background .15s;
+}
+
+.edit-toggle:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.edit-toggle.active {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.edit-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.35fr) 1fr 28px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.edit-row input {
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 0.88rem;
+  font-weight: 500;
+  outline: none;
+  width: 100%;
+  min-width: 0;
+}
+
+.edit-row input:focus {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px rgba(58, 90, 64, 0.12);
+}
+
+.edit-row .qty-input {
+  font-weight: 700;
+}
+
+.edit-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--mute);
+  transition: background .12s, color .12s;
+}
+
+.edit-remove:hover {
+  background: rgba(168, 50, 50, 0.1);
+  color: var(--danger);
+}
+
+.add-ing {
+  margin-top: 8px;
+  width: 100%;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px dashed var(--line-strong);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--mute);
+  transition: color .15s, border-color .15s, background .15s;
+}
+
+.add-ing:hover {
+  color: var(--sage);
+  border-color: var(--sage);
+  background: rgba(58, 90, 64, 0.04);
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, transparent, var(--card) 28%);
+  padding-bottom: 4px;
+}
+
+.edit-actions .btn-ghost-sm,
+.edit-actions .btn-solid {
+  height: 38px;
+  padding: 0 16px;
+  font-size: 0.82rem;
+}
+
 /* ── Steps ───────────────────────────────────────────────── */
 .steps { display: flex; flex-direction: column; gap: 16px; }
 

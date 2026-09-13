@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=4">
+  <link rel="stylesheet" href="./styles.css?v=5">
 </head>
 <body>
   <header class="topbar" id="topbar">
@@ -366,9 +366,27 @@ function cardHTML(r) {
     </button>`;
 }
 
-function openDetail(id) {
+let openId = null;
+let editingIngredients = false;
+
+function upsertLocalRecipe(recipe) {
+  const local = loadLocal();
+  const idx = local.findIndex(x => String(x.id) === String(recipe.id));
+  const { total, ...rest } = normalize(recipe);
+  if (idx >= 0) local[idx] = rest;
+  else local.push(rest);
+  saveLocal(local);
+  recipes = mergeRecipes(baseRecipes, local);
+  renderFilters();
+  renderGrid();
+  updateStats();
+}
+
+function openDetail(id, { editing = false } = {}) {
   const r = recipes.find(x => x.id === id);
   if (!r) return;
+  openId = id;
+  editingIngredients = editing;
 
   const color = accent(r.cuisine);
   $("#detail-hero").style.setProperty("--accent", color);
@@ -384,17 +402,10 @@ function openDetail(id) {
   if (r.difficulty) meta.push(metaItem("Level", r.difficulty));
   $("#detail-meta").innerHTML = meta.join("") || metaItem("Ready", "Cook mode");
 
-  const cols = r.columns.map(col => `
-    <div class="col-block">
-      <h4>${escapeHtml(col.title)} <em>${col.items.length}</em></h4>
-      <div class="check-list">
-        ${col.items.map((item, i) => `
-          <label class="check-item" data-key="${escapeAttr(r.id)}:${escapeAttr(col.title)}:${i}">
-            <span class="check-box" aria-hidden="true"></span>
-            <span class="check-text">${item.qty ? `<span class="qty">${escapeHtml(item.qty)}</span>` : ""}${escapeHtml(item.name)}</span>
-          </label>`).join("")}
-      </div>
-    </div>`).join("");
+  const columns = r.columns.length ? r.columns : [{ title: "Ingredients", items: [] }];
+  const ingStack = editing
+    ? renderIngredientEditor(columns)
+    : renderIngredientList(r.id, columns);
 
   const steps = r.steps.map((s, i) => `
     <div class="step">
@@ -407,10 +418,15 @@ function openDetail(id) {
       <div class="cook-pane">
         <div class="cook-pane-head">
           ${r.description ? `<p class="detail-intro">${escapeHtml(r.description)}</p>` : ""}
-          <div class="section-label">Ingredients</div>
+          <div class="ing-head-row">
+            <div class="section-label">${editing ? "Edit ingredients" : "Ingredients"}</div>
+            <button type="button" class="edit-toggle${editing ? " active" : ""}" data-action="toggle-edit">
+              ${editing ? "Cancel" : "Edit"}
+            </button>
+          </div>
         </div>
         <div class="cook-scroll">
-          <div class="ing-stack">${cols || `<p style="color:var(--mute)">No ingredients yet.</p>`}</div>
+          <div class="ing-stack" data-recipe-id="${escapeAttr(r.id)}">${ingStack}</div>
         </div>
       </div>
       <div class="cook-pane method-pane">
@@ -426,10 +442,69 @@ function openDetail(id) {
     </div>
   `;
 
-  restoreChecks(r.id);
+  if (!editing) restoreChecks(r.id);
   showSheet("detail");
   $("#detail-body").scrollTop = 0;
   $$(".cook-scroll", $("#detail-body")).forEach(p => { p.scrollTop = 0; });
+  if (editing) {
+    const first = $("#detail-body .qty-input, #detail-body .name-input");
+    if (first) setTimeout(() => first.focus(), 40);
+  }
+}
+
+function renderIngredientList(recipeId, columns) {
+  if (!columns.length) return `<p style="color:var(--mute)">No ingredients yet. Tap Edit to add some.</p>`;
+  return columns.map((col, ci) => `
+    <div class="col-block" data-col="${ci}">
+      <h4>${escapeHtml(col.title)} <em>${col.items.length}</em></h4>
+      <div class="check-list">
+        ${col.items.map((item, i) => `
+          <label class="check-item" data-key="${escapeAttr(recipeId)}:${escapeAttr(col.title)}:${i}">
+            <span class="check-box" aria-hidden="true"></span>
+            <span class="check-text">${item.qty ? `<span class="qty">${escapeHtml(item.qty)}</span>` : ""}${escapeHtml(item.name)}</span>
+          </label>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function renderIngredientEditor(columns) {
+  const cols = columns.length ? columns : [{ title: "Ingredients", items: [] }];
+  return cols.map((col, ci) => `
+    <div class="col-block" data-col="${ci}">
+      <h4>${escapeHtml(col.title)} <em class="col-count">${col.items.length}</em></h4>
+      <div class="edit-list">
+        ${col.items.map((item, i) => editRowHTML(ci, i, item)).join("")}
+      </div>
+      <button type="button" class="add-ing" data-action="add-ing" data-col="${ci}">+ Add ingredient</button>
+    </div>`).join("") + `
+    <div class="edit-actions">
+      <button type="button" class="btn-ghost-sm" data-action="cancel-edit">Cancel</button>
+      <button type="button" class="btn-solid" data-action="save-ings">Save changes</button>
+    </div>`;
+}
+
+function editRowHTML(ci, i, item) {
+  return `
+    <div class="edit-row" data-col="${ci}" data-idx="${i}">
+      <input class="qty-input" type="text" value="${escapeAttr(item.qty || "")}" placeholder="qty" aria-label="Quantity">
+      <input class="name-input" type="text" value="${escapeAttr(item.name || "")}" placeholder="ingredient" aria-label="Ingredient">
+      <button type="button" class="edit-remove" data-action="remove-ing" data-col="${ci}" data-idx="${i}" aria-label="Remove ingredient">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>`;
+}
+
+function readEditorColumns() {
+  const stack = $("#detail-body .ing-stack");
+  if (!stack) return [];
+  return $$(".col-block", stack).map(block => {
+    const title = block.querySelector("h4")?.childNodes[0]?.textContent?.trim() || "Ingredients";
+    const items = $$(".edit-row", block).map(row => ({
+      qty: row.querySelector(".qty-input")?.value.trim() || "",
+      name: row.querySelector(".name-input")?.value.trim() || "",
+    })).filter(item => item.qty || item.name);
+    return { title, items };
+  }).filter(col => col.items.length > 0);
 }
 
 function metaItem(label, value) {
@@ -474,6 +549,8 @@ function showSheet(which) {
 }
 
 function closeSheets() {
+  editingIngredients = false;
+  openId = null;
   $("#overlay").classList.remove("open");
   $("#detail").classList.remove("open");
   $("#editor").classList.remove("open");
@@ -545,6 +622,71 @@ $("#editor-cancel").addEventListener("click", closeSheets);
 $("#overlay").addEventListener("click", closeSheets);
 
 $("#detail-body").addEventListener("click", e => {
+  const actionBtn = e.target.closest("[data-action]");
+  if (actionBtn) {
+    const action = actionBtn.dataset.action;
+    e.preventDefault();
+
+    if (action === "toggle-edit") {
+      if (editingIngredients) {
+        // Treat as cancel if they toggle off without save — ask only if dirty? Keep simple: cancel
+        openDetail(openId, { editing: false });
+      } else {
+        openDetail(openId, { editing: true });
+      }
+      return;
+    }
+
+    if (action === "cancel-edit") {
+      openDetail(openId, { editing: false });
+      return;
+    }
+
+    if (action === "save-ings") {
+      const r = recipes.find(x => x.id === openId);
+      if (!r) return;
+      const columns = readEditorColumns();
+      if (!columns.length) {
+        toast("Add at least one ingredient");
+        return;
+      }
+      upsertLocalRecipe({ ...r, columns });
+      toast("Ingredients updated");
+      openDetail(openId, { editing: false });
+      return;
+    }
+
+    if (action === "add-ing") {
+      const ci = Number(actionBtn.dataset.col);
+      const block = actionBtn.closest(".col-block");
+      const list = block?.querySelector(".edit-list");
+      if (!list) return;
+      const idx = list.children.length;
+      list.insertAdjacentHTML("beforeend", editRowHTML(ci, idx, { qty: "", name: "" }));
+      const count = block.querySelector(".col-count");
+      if (count) count.textContent = String(idx + 1);
+      const nameInput = list.lastElementChild?.querySelector(".name-input");
+      nameInput?.focus();
+      return;
+    }
+
+    if (action === "remove-ing") {
+      const row = actionBtn.closest(".edit-row");
+      const block = actionBtn.closest(".col-block");
+      row?.remove();
+      // reindex
+      $$(".edit-row", block).forEach((el, i) => {
+        el.dataset.idx = String(i);
+        const rm = el.querySelector("[data-action=remove-ing]");
+        if (rm) rm.dataset.idx = String(i);
+      });
+      const count = block?.querySelector(".col-count");
+      if (count) count.textContent = String($$(".edit-row", block).length);
+      return;
+    }
+  }
+
+  if (editingIngredients) return;
   const item = e.target.closest(".check-item");
   if (!item) return;
   item.classList.toggle("done");
@@ -552,7 +694,12 @@ $("#detail-body").addEventListener("click", e => {
 });
 
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") closeSheets();
+  if (e.key !== "Escape") return;
+  if (editingIngredients && openId) {
+    openDetail(openId, { editing: false });
+    return;
+  }
+  closeSheets();
 });
 
 window.addEventListener("scroll", () => {
@@ -586,13 +733,7 @@ $("#recipe-form").addEventListener("submit", e => {
     tags: ["new"],
   });
 
-  const local = loadLocal();
-  local.push(recipe);
-  saveLocal(local);
-  recipes = mergeRecipes(baseRecipes, local);
-  renderFilters();
-  renderGrid();
-  updateStats();
+  upsertLocalRecipe(recipe);
   closeSheets();
   toast(`Saved “${recipe.title}”`);
   openDetail(recipe.id);
