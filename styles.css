@@ -999,6 +999,80 @@ body:has(.sheet.open) .fab-bar {
 }
 
 /* ── Subtle ingredient edit ──────────────────────────────── */
+.edit-chrome {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 12px 14px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+
+.edit-chrome-label {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-chrome-btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.edit-chrome-btn.ghost {
+  background: var(--paper-warm);
+  color: var(--ink);
+}
+
+.edit-chrome-btn.solid {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* Edit mode: kill hero + meta, maximize list space */
+.sheet.is-editing .edit-chrome {
+  display: flex;
+}
+
+.sheet.is-editing .detail-hero,
+.sheet.is-editing .detail-meta-bar {
+  display: none !important;
+}
+
+.sheet.is-editing .sheet-body {
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 759px) {
+  .sheet.is-editing .method-pane {
+    display: none;
+  }
+  .sheet.is-editing .cook-layout {
+    height: 100%;
+    min-height: 100%;
+  }
+  .sheet.is-editing .cook-pane {
+    height: 100%;
+    overflow: hidden;
+  }
+  .sheet.is-editing .cook-scroll {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 .ing-head-row {
   display: flex;
   align-items: center;
@@ -1031,12 +1105,6 @@ body:has(.sheet.open) .fab-bar {
   border-color: var(--line-strong);
 }
 
-.edit-toggle.active {
-  color: #fff;
-  background: var(--ink);
-  border-color: var(--ink);
-}
-
 .edit-row {
   display: grid;
   grid-template-columns: minmax(72px, 0.35fr) 1fr 28px;
@@ -1046,12 +1114,12 @@ body:has(.sheet.open) .fab-bar {
 }
 
 .edit-row input {
-  height: 36px;
+  height: 40px;
   padding: 0 10px;
   border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--card);
-  font-size: 0.88rem;
+  font-size: 16px; /* iOS: avoid zoom on focus */
   font-weight: 500;
   outline: none;
   width: 100%;
@@ -1085,7 +1153,7 @@ body:has(.sheet.open) .fab-bar {
 .add-ing {
   margin-top: 8px;
   width: 100%;
-  height: 36px;
+  height: 40px;
   border-radius: 8px;
   border: 1px dashed var(--line-strong);
   font-size: 0.8rem;
@@ -1098,26 +1166,6 @@ body:has(.sheet.open) .fab-bar {
   color: var(--sage);
   border-color: var(--sage);
   background: rgba(58, 90, 64, 0.04);
-}
-
-.edit-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-  position: sticky;
-  bottom: 0;
-  background: linear-gradient(180deg, transparent, var(--card) 28%);
-  padding-bottom: 4px;
-}
-
-.edit-actions .btn-ghost-sm,
-.edit-actions .btn-solid {
-  height: 38px;
-  padding: 0 16px;
-  font-size: 0.82rem;
 }
 
 /* ── Steps ───────────────────────────────────────────────── */

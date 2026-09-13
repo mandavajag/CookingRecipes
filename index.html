@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=5">
+  <link rel="stylesheet" href="./styles.css?v=6">
 </head>
 <body>
   <header class="topbar" id="topbar">
@@ -81,6 +81,11 @@
   <div class="overlay" id="overlay" hidden></div>
 
   <section class="sheet" id="detail" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
+    <div class="edit-chrome" id="edit-chrome" hidden>
+      <button type="button" class="edit-chrome-btn ghost" id="edit-cancel">Cancel</button>
+      <p class="edit-chrome-label">Edit ingredients</p>
+      <button type="button" class="edit-chrome-btn solid" id="edit-save">Save</button>
+    </div>
     <div class="detail-hero" id="detail-hero">
       <div class="detail-hero-mark" id="detail-hero-mark" aria-hidden="true"></div>
       <div class="detail-hero-overlay"></div>
@@ -388,6 +393,11 @@ function openDetail(id, { editing = false } = {}) {
   openId = id;
   editingIngredients = editing;
 
+  const detail = $("#detail");
+  detail.classList.toggle("is-editing", editing);
+  const chrome = $("#edit-chrome");
+  chrome.hidden = !editing;
+
   const color = accent(r.cuisine);
   $("#detail-hero").style.setProperty("--accent", color);
   $("#detail-hero-mark").textContent = (r.cuisine || "K").charAt(0).toUpperCase();
@@ -417,12 +427,10 @@ function openDetail(id, { editing = false } = {}) {
     <div class="cook-layout">
       <div class="cook-pane">
         <div class="cook-pane-head">
-          ${r.description ? `<p class="detail-intro">${escapeHtml(r.description)}</p>` : ""}
+          ${!editing && r.description ? `<p class="detail-intro">${escapeHtml(r.description)}</p>` : ""}
           <div class="ing-head-row">
-            <div class="section-label">${editing ? "Edit ingredients" : "Ingredients"}</div>
-            <button type="button" class="edit-toggle${editing ? " active" : ""}" data-action="toggle-edit">
-              ${editing ? "Cancel" : "Edit"}
-            </button>
+            <div class="section-label">Ingredients</div>
+            ${editing ? "" : `<button type="button" class="edit-toggle" data-action="toggle-edit">Edit</button>`}
           </div>
         </div>
         <div class="cook-scroll">
@@ -476,11 +484,7 @@ function renderIngredientEditor(columns) {
         ${col.items.map((item, i) => editRowHTML(ci, i, item)).join("")}
       </div>
       <button type="button" class="add-ing" data-action="add-ing" data-col="${ci}">+ Add ingredient</button>
-    </div>`).join("") + `
-    <div class="edit-actions">
-      <button type="button" class="btn-ghost-sm" data-action="cancel-edit">Cancel</button>
-      <button type="button" class="btn-solid" data-action="save-ings">Save changes</button>
-    </div>`;
+    </div>`).join("");
 }
 
 function editRowHTML(ci, i, item) {
@@ -551,6 +555,8 @@ function showSheet(which) {
 function closeSheets() {
   editingIngredients = false;
   openId = null;
+  $("#detail").classList.remove("is-editing");
+  $("#edit-chrome").hidden = true;
   $("#overlay").classList.remove("open");
   $("#detail").classList.remove("open");
   $("#editor").classList.remove("open");
@@ -621,6 +627,25 @@ $("#editor-close").addEventListener("click", closeSheets);
 $("#editor-cancel").addEventListener("click", closeSheets);
 $("#overlay").addEventListener("click", closeSheets);
 
+function saveIngredientEdits() {
+  const r = recipes.find(x => x.id === openId);
+  if (!r) return;
+  const columns = readEditorColumns();
+  if (!columns.length) {
+    toast("Add at least one ingredient");
+    return;
+  }
+  upsertLocalRecipe({ ...r, columns });
+  toast("Ingredients updated");
+  openDetail(openId, { editing: false });
+}
+
+$("#edit-cancel").addEventListener("click", () => {
+  if (openId) openDetail(openId, { editing: false });
+});
+
+$("#edit-save").addEventListener("click", saveIngredientEdits);
+
 $("#detail-body").addEventListener("click", e => {
   const actionBtn = e.target.closest("[data-action]");
   if (actionBtn) {
@@ -628,31 +653,7 @@ $("#detail-body").addEventListener("click", e => {
     e.preventDefault();
 
     if (action === "toggle-edit") {
-      if (editingIngredients) {
-        // Treat as cancel if they toggle off without save — ask only if dirty? Keep simple: cancel
-        openDetail(openId, { editing: false });
-      } else {
-        openDetail(openId, { editing: true });
-      }
-      return;
-    }
-
-    if (action === "cancel-edit") {
-      openDetail(openId, { editing: false });
-      return;
-    }
-
-    if (action === "save-ings") {
-      const r = recipes.find(x => x.id === openId);
-      if (!r) return;
-      const columns = readEditorColumns();
-      if (!columns.length) {
-        toast("Add at least one ingredient");
-        return;
-      }
-      upsertLocalRecipe({ ...r, columns });
-      toast("Ingredients updated");
-      openDetail(openId, { editing: false });
+      openDetail(openId, { editing: true });
       return;
     }
 
@@ -674,7 +675,6 @@ $("#detail-body").addEventListener("click", e => {
       const row = actionBtn.closest(".edit-row");
       const block = actionBtn.closest(".col-block");
       row?.remove();
-      // reindex
       $$(".edit-row", block).forEach((el, i) => {
         el.dataset.idx = String(i);
         const rm = el.querySelector("[data-action=remove-ing]");
