@@ -311,8 +311,16 @@ function saveLocal(list) {
 function mergeRecipes(base, local) {
   const map = new Map();
   for (const r of base) map.set(String(r.id), { ...normalize(r), source: "file" });
-  for (const r of local) map.set(String(r.id), { ...normalize(r), source: "local" });
+  // Only include local recipes if fallback is enabled
+  if (KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK) {
+    for (const r of local) map.set(String(r.id), { ...normalize(r), source: "local" });
+  }
   return [...map.values()].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+}
+
+function getLocalRecipes() {
+  // Return empty array if fallback is disabled
+  return KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK ? loadLocal() : [];
 }
 
 function normalize(r) {
@@ -619,6 +627,8 @@ function normalizeFromSupabase(r) {
 }
 
 function toSupabaseFormat(r) {
+  // Note: created_by is NOT sent - server trigger sets it to auth.uid()
+  // This prevents clients from spoofing ownership
   return {
     slug: r.id || generateSlug(r.title),
     title: r.title,
@@ -634,7 +644,6 @@ function toSupabaseFormat(r) {
     notes: r.notes || "",
     video_link: r.videoLink || "",
     description: r.description || "",
-    created_by: currentUser?.id,
   };
 }
 

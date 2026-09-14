@@ -1,7 +1,18 @@
 -- Seed existing recipes from recipes.json
--- These recipes have no owner (created_by = NULL) so they are "system" recipes
--- Anyone can view them, but only the original owner can edit (which means no one for seeded data)
--- To make them editable, update created_by to a specific user's UUID after they sign up.
+-- 
+-- OWNERSHIP NOTE:
+-- These recipes are inserted with created_by = NULL (no owner).
+-- This makes them "community/system" recipes with the following behavior:
+--   - Readable by everyone (anon + authenticated) via SELECT policy
+--   - NOT editable by any regular user (RLS requires auth.uid() = created_by)
+--   - Only modifiable via service_role key (admin/backend only)
+--
+-- This is intentional: seed data represents community content that users can
+-- browse but not modify. User-created recipes will have proper ownership.
+--
+-- To transfer ownership of a seed recipe to a specific user (e.g., an admin):
+--   UPDATE recipes SET created_by = 'user-uuid-here' WHERE slug = 'recipe-slug';
+-- (Must be run with service_role key, not anon/authenticated)
 
 INSERT INTO public.recipes (slug, title, cuisine, category, prep_time, cook_time, servings, difficulty, tags, columns, steps, notes, video_link, created_by)
 VALUES

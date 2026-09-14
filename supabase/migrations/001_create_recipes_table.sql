@@ -1,14 +1,16 @@
 -- Kitchen Recipes Schema
 -- Run this in your Supabase SQL editor: https://supabase.com/dashboard/project/YOUR_PROJECT/sql
 
--- Enable UUID extension if not already enabled
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- ============================================================================
+-- TABLE DEFINITION
+-- ============================================================================
 
 -- Recipes table
+-- Note: Using gen_random_uuid() (built-in) instead of uuid-ossp extension
 CREATE TABLE IF NOT EXISTS public.recipes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  -- Human-readable slug for URLs (must be unique)
+  -- Human-readable slug for URLs (UNIQUE constraint auto-creates index)
   slug TEXT UNIQUE NOT NULL,
   
   -- Core fields
@@ -33,42 +35,98 @@ CREATE TABLE IF NOT EXISTS public.recipes (
   video_link TEXT DEFAULT '',
   
   -- Ownership & timestamps
+  -- ON DELETE SET NULL: If user is deleted, recipe becomes orphaned (read-only, no owner).
+  -- This preserves recipe content. Use CASCADE if you prefer deleting user's recipes.
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Index for common queries
+-- ============================================================================
+-- INDEXES
+-- ============================================================================
+-- Note: slug already has a unique index from the UNIQUE constraint
+
 CREATE INDEX IF NOT EXISTS idx_recipes_cuisine ON public.recipes(cuisine);
 CREATE INDEX IF NOT EXISTS idx_recipes_created_by ON public.recipes(created_by);
 CREATE INDEX IF NOT EXISTS idx_recipes_created_at ON public.recipes(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_recipes_slug ON public.recipes(slug);
 
 -- Full-text search index
 CREATE INDEX IF NOT EXISTS idx_recipes_search ON public.recipes USING gin(
   to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(notes, ''))
 );
 
--- Trigger to auto-update updated_at
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
+-- ============================================================================
+-- TRIGGERS: Ownership & Timestamps
+-- ============================================================================
+
+-- Trigger function: Auto-update updated_at timestamp
+-- SET search_path = public to prevent mutable search_path attacks
+CREATE OR REPLACE FUNCTION public.update_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 DROP TRIGGER IF EXISTS recipes_updated_at ON public.recipes;
 CREATE TRIGGER recipes_updated_at
   BEFORE UPDATE ON public.recipes
   FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at();
+  EXECUTE FUNCTION public.update_updated_at();
+
+-- Trigger function: Force created_by to auth.uid() on INSERT
+-- This prevents clients from spoofing ownership
+CREATE OR REPLACE FUNCTION public.set_recipe_owner()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Always set created_by to the authenticated user, ignoring client input
+  NEW.created_by = auth.uid();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS recipes_set_owner ON public.recipes;
+CREATE TRIGGER recipes_set_owner
+  BEFORE INSERT ON public.recipes
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_recipe_owner();
+
+-- Trigger function: Prevent changing created_by on UPDATE (immutable ownership)
+CREATE OR REPLACE FUNCTION public.protect_recipe_owner()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Prevent any change to created_by after insert
+  IF OLD.created_by IS DISTINCT FROM NEW.created_by THEN
+    RAISE EXCEPTION 'Cannot change recipe ownership (created_by is immutable)';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS recipes_protect_owner ON public.recipes;
+CREATE TRIGGER recipes_protect_owner
+  BEFORE UPDATE ON public.recipes
+  FOR EACH ROW
+  EXECUTE FUNCTION public.protect_recipe_owner();
 
 -- ============================================================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================================================
 
--- Enable RLS
 ALTER TABLE public.recipes ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Anyone can read recipes (public browse)
@@ -76,7 +134,8 @@ CREATE POLICY "recipes_select_public" ON public.recipes
   FOR SELECT
   USING (true);
 
--- Policy: Authenticated users can insert their own recipes
+-- Policy: Authenticated users can insert recipes
+-- Note: created_by is set by trigger, not client. WITH CHECK ensures trigger ran correctly.
 CREATE POLICY "recipes_insert_authenticated" ON public.recipes
   FOR INSERT
   TO authenticated
@@ -96,19 +155,38 @@ CREATE POLICY "recipes_delete_own" ON public.recipes
   USING (auth.uid() = created_by);
 
 -- ============================================================================
+-- EXPLICIT GRANTS
+-- ============================================================================
+
+-- Revoke all first to ensure clean state
+REVOKE ALL ON public.recipes FROM anon, authenticated;
+
+-- Grant SELECT to both anon and authenticated (public read)
+GRANT SELECT ON public.recipes TO anon;
+GRANT SELECT ON public.recipes TO authenticated;
+
+-- Grant write operations only to authenticated users
+GRANT INSERT, UPDATE, DELETE ON public.recipes TO authenticated;
+
+-- ============================================================================
 -- HELPER FUNCTIONS
 -- ============================================================================
 
 -- Function to generate a unique slug from title
-CREATE OR REPLACE FUNCTION generate_recipe_slug(title TEXT)
-RETURNS TEXT AS $$
+-- SET search_path = public to prevent mutable search_path attacks
+CREATE OR REPLACE FUNCTION public.generate_recipe_slug(p_title TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+AS $$
 DECLARE
   base_slug TEXT;
   new_slug TEXT;
   counter INTEGER := 0;
 BEGIN
   -- Normalize: lowercase, replace spaces/special chars with hyphens
-  base_slug := lower(regexp_replace(title, '[^a-zA-Z0-9]+', '-', 'g'));
+  base_slug := lower(regexp_replace(p_title, '[^a-zA-Z0-9]+', '-', 'g'));
   base_slug := regexp_replace(base_slug, '^-|-$', '', 'g');  -- Trim leading/trailing hyphens
   base_slug := substring(base_slug from 1 for 60);  -- Limit length
   
@@ -122,30 +200,46 @@ BEGIN
   
   RETURN new_slug;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 -- ============================================================================
--- VERIFICATION QUERIES (run these to confirm RLS works)
+-- VERIFICATION QUERIES (run these to confirm security works)
 -- ============================================================================
 /*
 -- As anon user: should see all recipes
 SELECT * FROM recipes LIMIT 5;
 
--- As anon user: should fail (no permission)
+-- As anon user: should fail (no INSERT permission)
 INSERT INTO recipes (slug, title) VALUES ('test', 'Test Recipe');
 
--- After logging in as a user:
--- This should succeed (inserting with own user id)
-INSERT INTO recipes (slug, title, created_by) 
-VALUES ('my-recipe', 'My Recipe', auth.uid());
+-- After logging in as authenticated user:
 
--- This should fail (trying to insert as different user)
+-- This should succeed. Note: created_by is IGNORED - trigger sets it to auth.uid()
+INSERT INTO recipes (slug, title) VALUES ('my-recipe', 'My Recipe');
+
+-- Verify ownership was set correctly
+SELECT id, title, created_by FROM recipes WHERE slug = 'my-recipe';
+
+-- Try to spoof ownership (should be ignored by trigger, set to your ID instead)
 INSERT INTO recipes (slug, title, created_by) 
-VALUES ('fake-recipe', 'Fake', 'some-other-uuid');
+VALUES ('spoofed-recipe', 'Spoofed', '00000000-0000-0000-0000-000000000000');
+-- Check: created_by should be YOUR user ID, not the fake UUID
 
 -- Update own recipe: should work
-UPDATE recipes SET title = 'Updated' WHERE created_by = auth.uid();
+UPDATE recipes SET title = 'Updated Title' WHERE slug = 'my-recipe';
 
--- Update someone else's recipe: should affect 0 rows
+-- Try to change ownership: should FAIL with exception
+UPDATE recipes SET created_by = '00000000-0000-0000-0000-000000000000' WHERE slug = 'my-recipe';
+-- Error: "Cannot change recipe ownership (created_by is immutable)"
+
+-- Update someone else's recipe: should affect 0 rows (RLS blocks it)
 UPDATE recipes SET title = 'Hacked' WHERE created_by != auth.uid();
+
+-- Delete own recipe: should work
+DELETE FROM recipes WHERE slug = 'my-recipe';
+
+-- SEED DATA NOTE:
+-- Recipes from 002_seed_recipes.sql have created_by = NULL (no owner).
+-- These are "system" recipes: readable by all, editable by none (except service_role).
+-- This is intentional - seed data is read-only community content.
 */

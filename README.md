@@ -115,14 +115,38 @@ The database is protected by Supabase's Row Level Security:
 | Operation | Policy |
 |-----------|--------|
 | **SELECT** | Public - anyone can read recipes |
-| **INSERT** | Authenticated users only, must set `created_by` to own user ID |
+| **INSERT** | Authenticated only - `created_by` set by server trigger |
 | **UPDATE** | Owner only - `auth.uid() = created_by` |
 | **DELETE** | Owner only - `auth.uid() = created_by` |
+
+### Ownership Protection
+
+- **Server-enforced ownership**: A `BEFORE INSERT` trigger automatically sets `created_by` to `auth.uid()`. The client cannot spoof ownership.
+- **Immutable ownership**: A `BEFORE UPDATE` trigger prevents changing `created_by` after creation.
+- **Orphaned recipes**: If a user is deleted, their recipes become orphaned (`created_by = NULL`). These recipes remain readable but are no longer editable by anyone except via service_role. This preserves content; use `ON DELETE CASCADE` instead if you prefer deleting user content.
+
+### Seed Data
+
+Recipes from `002_seed_recipes.sql` have `created_by = NULL` (no owner). This is intentional:
+- They are "community" recipes that everyone can read
+- No regular user can edit them (RLS requires `auth.uid() = created_by`)
+- Only service_role (admin backend) can modify them
+
+To transfer a seed recipe to a user: `UPDATE recipes SET created_by = 'user-uuid' WHERE slug = 'recipe-slug'` (requires service_role key).
 
 ### API Keys
 
 - ✅ **anon/public key**: Safe to expose in client code. All security is enforced by RLS.
 - ❌ **service_role key**: NEVER expose this. It bypasses RLS.
+
+### Local Storage Fallback
+
+By default, `ENABLE_LOCAL_STORAGE_FALLBACK` is **disabled** for production security. When enabled:
+- Local recipes appear in the UI alongside server recipes
+- Local data does NOT bypass server-side checks (you still can't edit others' recipes)
+- Useful for offline-first or demo scenarios
+
+Set `ENABLE_LOCAL_STORAGE_FALLBACK: true` in `config.js` to enable.
 
 ## Development
 

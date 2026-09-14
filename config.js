@@ -33,7 +33,11 @@ const KitchenConfig = (() => {
     APP_NAME: 'Kitchen',
     
     // Feature flags
-    ENABLE_LOCAL_STORAGE_FALLBACK: true,  // Fall back to localStorage if Supabase fails
+    // SECURITY: Local storage fallback is DISABLED by default for production.
+    // When enabled, local recipes can appear alongside server recipes, but local
+    // data does NOT bypass server-side ownership checks (RLS still enforces auth).
+    // Set to true only for offline-first/demo scenarios.
+    ENABLE_LOCAL_STORAGE_FALLBACK: env.ENABLE_LOCAL_STORAGE_FALLBACK || false,
     DEBUG_MODE: env.DEBUG_MODE || false,
 
     // Check if Supabase is properly configured
