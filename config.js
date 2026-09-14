@@ -16,17 +16,18 @@
 
 const KitchenConfig = (() => {
   // Try to read from window config (set by build/CI) or use defaults
+  // For static sites, you can inject these via a build step or edit directly
   const env = window.__KITCHEN_ENV__ || {};
 
   return {
     // Supabase project URL
-    // Format: https://YOUR_PROJECT_REF.supabase.co
-    // TODO: Replace with your actual Supabase project URL
-    SUPABASE_URL: env.SUPABASE_URL || 'https://YOUR_PROJECT.supabase.co',
+    // Env var: NEXT_PUBLIC_SUPABASE_URL (or VITE_SUPABASE_URL for Vite builds)
+    SUPABASE_URL: env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL || 'https://mgmaxspuazxaywskopze.supabase.co',
 
     // Supabase anonymous/publishable key (safe for client-side)
-    // Found in Supabase Dashboard > Settings > API > Project API keys > anon/public
-    SUPABASE_ANON_KEY: env.SUPABASE_ANON_KEY || 'sb_publishable_QcKiacF4OJRhkShAkAzsYw_7_l5ypJI',
+    // Env var: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    // This key is safe to commit - all security is enforced by RLS on the server
+    SUPABASE_ANON_KEY: env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || 'sb_publishable_QcKiacF4OJRhkShAkAzsYw_7_l5ypJI',
 
     // App settings
     APP_NAME: 'Kitchen',

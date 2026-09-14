@@ -41,16 +41,29 @@ A beautiful recipe collection app with Supabase backend. Browse, create, and sha
 1. Go to **Settings** → **API** in Supabase dashboard
 2. Copy your:
    - **Project URL**: `https://YOUR_PROJECT_REF.supabase.co`
-   - **anon/public key**: `eyJhbGciOiJIUzI1NiIs...` (safe for client-side)
+   - **anon/public key**: `sb_publishable_...` (safe for client-side)
 
 ### 5. Configure the App
 
-Edit `config.js` with your Supabase credentials:
+The app reads from `config.js`. For a static GitHub Pages deploy, the default values are already configured. If you need to change them:
+
+**Option A: Edit `config.js` directly** (simplest for static hosting)
 
 ```javascript
-SUPABASE_URL: 'https://YOUR_PROJECT_REF.supabase.co',
-SUPABASE_ANON_KEY: 'your_anon_key_here',
+SUPABASE_URL: 'https://your-project-ref.supabase.co',
+SUPABASE_ANON_KEY: 'sb_publishable_your_key_here',
 ```
+
+**Option B: Use environment variables** (for build tools)
+
+Set these in your `.env` file or CI/CD secrets:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key_here
+```
+
+> **Note:** The publishable/anon key is safe to commit. All security is enforced server-side via Row Level Security (RLS).
 
 ### 6. Deploy to GitHub Pages
 
