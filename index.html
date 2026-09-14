@@ -655,41 +655,64 @@ function generateSlug(title) {
     .substring(0, 60) + '-' + Date.now().toString(36);
 }
 
-async function saveRecipeToSupabase(recipe) {
-  if (!supabaseConfigured || !currentUser) {
-    upsertLocalRecipe(recipe);
-    return { success: true, local: true };
+async function saveRecipe(recipe) {
+  // PRODUCTION PATH: Supabase is configured
+  if (supabaseConfigured) {
+    // Must be logged in to save
+    if (!currentUser) {
+      toast("Sign in to save recipes");
+      return { success: false, error: 'auth_required' };
+    }
+    
+    try {
+      const data = toSupabaseFormat(recipe);
+      
+      if (recipe.supabaseId) {
+        const { error } = await supabase
+          .from('recipes')
+          .update(data)
+          .eq('id', recipe.supabaseId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('recipes')
+          .insert([data]);
+        if (error) throw error;
+      }
+      
+      await loadRecipesFromSupabase();
+      return { success: true };
+    } catch (e) {
+      console.error('Save to Supabase failed:', e);
+      
+      // Permission denied (RLS)
+      if (e.message?.includes('permission') || e.code === '42501') {
+        toast("You can only edit your own recipes");
+        return { success: false, error: 'permission' };
+      }
+      
+      // Network or other error - FAIL LOUDLY, no silent fallback
+      toast("Save failed: " + (e.message || "Server error"));
+      return { success: false, error: e.message || 'server_error' };
+    }
   }
   
-  try {
-    const data = toSupabaseFormat(recipe);
-    
-    if (recipe.supabaseId) {
-      const { error } = await supabase
-        .from('recipes')
-        .update(data)
-        .eq('id', recipe.supabaseId);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from('recipes')
-        .insert([data]);
-      if (error) throw error;
-    }
-    
-    await loadRecipesFromSupabase();
-    return { success: true };
-  } catch (e) {
-    console.error('Save to Supabase failed:', e);
-    if (e.message?.includes('permission') || e.code === '42501') {
-      toast("You can only edit your own recipes");
-      return { success: false, error: 'permission' };
-    }
-    toast("Save failed — saved locally instead");
+  // DEMO/DEVELOPMENT PATH: Supabase not configured
+  // Only allow local saves when explicitly in demo mode (no Supabase)
+  // This is NOT a fallback - it's the only path when unconfigured
+  if (KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK) {
     upsertLocalRecipe(recipe);
-    return { success: true, local: true };
+    toast("Saved locally (demo mode - configure Supabase for production)");
+    return { success: true, local: true, demo: true };
   }
+  
+  // Supabase not configured AND fallback disabled = cannot save
+  toast("Cannot save: Supabase not configured");
+  return { success: false, error: 'not_configured' };
 }
+
+// Legacy alias for compatibility
+const saveRecipeToSupabase = saveRecipe;
 
 async function deleteRecipeFromSupabase(recipeId, supabaseId) {
   if (!supabaseConfigured || !currentUser || !supabaseId) {
@@ -1077,9 +1100,16 @@ function closeSheets() {
 }
 
 function openEditor(recipeToEdit = null) {
-  if (!currentUser && supabaseConfigured) {
+  // Block editing if: Supabase configured but not logged in
+  if (supabaseConfigured && !currentUser) {
     toast("Sign in to add or edit recipes");
     openAuthModal();
+    return;
+  }
+  
+  // Block editing if: Supabase not configured AND fallback disabled
+  if (!supabaseConfigured && !KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK) {
+    toast("Cannot edit: Supabase not configured");
     return;
   }
   
@@ -1337,17 +1367,21 @@ $("#recipe-form").addEventListener("submit", async e => {
     tags: existingRecipe?.tags || ["new"],
   });
 
-  // Save to Supabase if logged in, otherwise local
-  const result = await saveRecipeToSupabase(recipe);
+  // Save recipe - will fail loudly if Supabase rejects or user not authenticated
+  const result = await saveRecipe(recipe);
   
   if (result.success) {
     closeSheets();
-    toast(result.local ? `Saved "${recipe.title}" locally` : `Saved "${recipe.title}"`);
+    // Toast already shown by saveRecipe for demo mode
+    if (!result.demo) {
+      toast(`Saved "${recipe.title}"`);
+    }
     setTimeout(() => {
       const saved = recipes.find(r => r.title === recipe.title) || recipe;
       openDetail(saved.id);
     }, 100);
   }
+  // Errors are already toasted by saveRecipe - form stays open for retry
 });
 
 $("#btn-reset-local").addEventListener("click", () => {

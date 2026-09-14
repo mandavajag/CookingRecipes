@@ -33,10 +33,22 @@ const KitchenConfig = (() => {
     APP_NAME: 'Kitchen',
     
     // Feature flags
-    // SECURITY: Local storage fallback is DISABLED by default for production.
-    // When enabled, local recipes can appear alongside server recipes, but local
-    // data does NOT bypass server-side ownership checks (RLS still enforces auth).
-    // Set to true only for offline-first/demo scenarios.
+    // 
+    // ENABLE_LOCAL_STORAGE_FALLBACK: Controls local-only mode when Supabase is not configured.
+    // 
+    // When FALSE (default, production):
+    //   - Supabase is REQUIRED for all write operations
+    //   - Saves FAIL LOUDLY if Supabase rejects or is unavailable
+    //   - No silent fallback to localStorage
+    //   - If Supabase isn't configured, editing is disabled entirely
+    //
+    // When TRUE (demo/development only):
+    //   - If Supabase isn't configured, saves go to localStorage
+    //   - Shows "(demo mode)" in toast messages
+    //   - Useful for local development without a Supabase project
+    //
+    // NOTE: This is NOT a network-error fallback. Production saves always
+    // require Supabase to succeed. localStorage is purely for unconfigured demo mode.
     ENABLE_LOCAL_STORAGE_FALLBACK: env.ENABLE_LOCAL_STORAGE_FALLBACK || false,
     DEBUG_MODE: env.DEBUG_MODE || false,
 
