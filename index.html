@@ -267,7 +267,18 @@ function initSupabase() {
   try {
     supabase = window.supabase.createClient(
       KitchenConfig.SUPABASE_URL,
-      KitchenConfig.SUPABASE_ANON_KEY
+      KitchenConfig.SUPABASE_ANON_KEY,
+      {
+        auth: {
+          // Let supabase-js automatically detect and consume auth tokens from URL hash
+          // This handles magic links, OAuth callbacks, and password recovery
+          detectSessionInUrl: true,
+          // Store session in localStorage for persistence
+          persistSession: true,
+          // Auto-refresh tokens before they expire
+          autoRefreshToken: true,
+        }
+      }
     );
     supabaseConfigured = true;
     return true;
@@ -494,13 +505,20 @@ async function handleAuthSubmit(e) {
     if (authMode === 'signin') {
       result = await supabase.auth.signInWithPassword({ email, password });
     } else {
-      result = await supabase.auth.signUp({ email, password });
+      // Include redirect URL for email confirmation link
+      const redirectUrl = window.location.origin + window.location.pathname;
+      result = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: { emailRedirectTo: redirectUrl }
+      });
     }
     
     if (result.error) throw result.error;
     
     if (authMode === 'signup' && !result.data.session) {
-      $("#auth-success-msg").textContent = "Check your email to confirm your account!";
+      // Email confirmation is required - inform user clearly
+      $("#auth-success-msg").textContent = "Check your email to confirm your account! Click the link in the email to complete sign up.";
       showAuthState('success');
     } else {
       updateAuthUI(result.data.user);
@@ -537,7 +555,7 @@ async function handleMagicLink() {
     
     if (error) throw error;
     
-    $("#auth-success-msg").textContent = "Check your email for the magic link!";
+    $("#auth-success-msg").textContent = "Check your email for the magic link! Click the link to sign in instantly.";
     showAuthState('success');
   } catch (err) {
     console.error('Magic link error:', err);
@@ -563,7 +581,7 @@ async function handleLogout() {
 // ============================================================================
 // DATA LAYER - SUPABASE INTEGRATION
 // ============================================================================
-async function loadRecipesFromSupabase() {
+async function loadRecipesFromSupabase(throwOnError = false) {
   if (!supabaseConfigured) {
     return loadRecipesFromJSON();
   }
@@ -574,15 +592,33 @@ async function loadRecipesFromSupabase() {
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      // Log the actual Supabase error for debugging
+      console.error('Supabase query error:', error.message, error.code, error.details);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      console.warn('Supabase returned 0 recipes - check RLS policies or seed data');
+    }
     
     baseRecipes = (data || []).map(normalizeFromSupabase);
     recipes = mergeRecipes(baseRecipes, loadLocal());
     renderFilters();
     renderGrid();
     updateStats();
+    
+    if (KitchenConfig.DEBUG_MODE) {
+      console.log(`Loaded ${baseRecipes.length} recipes from Supabase`);
+    }
   } catch (e) {
-    console.error('Failed to load from Supabase:', e);
+    console.error('Failed to load from Supabase:', e.message || e);
+    
+    if (throwOnError) {
+      throw e; // Let caller handle fallback
+    }
+    
+    // Default behavior: graceful fallback
     toast("Couldn't connect to server — showing cached data");
     await loadRecipesFromJSON();
   }
@@ -738,6 +774,48 @@ async function deleteRecipeFromSupabase(recipeId, supabaseId) {
 // ============================================================================
 // BOOT
 // ============================================================================
+
+// Timeout wrapper for async operations
+function withTimeout(promise, ms, errorMsg = 'Operation timed out') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
+  ]);
+}
+
+// Check if URL hash contains auth tokens (magic link, OAuth, recovery)
+function hasAuthTokensInHash() {
+  const hash = window.location.hash;
+  if (!hash || hash.length < 2) return false;
+  const params = new URLSearchParams(hash.substring(1));
+  return params.has('access_token') || params.has('refresh_token') || 
+         params.get('type') === 'recovery' || params.get('type') === 'magiclink';
+}
+
+// Clean auth tokens from URL after session is established
+function cleanAuthTokensFromUrl() {
+  if (hasAuthTokensInHash()) {
+    // Preserve any app-level hash routes (like #recipes or #recipe/slug)
+    // Auth tokens have access_token, refresh_token, etc. - we remove those
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.substring(1));
+    
+    // Remove auth-related params
+    ['access_token', 'refresh_token', 'expires_in', 'expires_at', 
+     'token_type', 'type', 'provider_token', 'provider_refresh_token'].forEach(key => {
+      params.delete(key);
+    });
+    
+    // If nothing left, clear the hash; otherwise keep remaining params
+    const remaining = params.toString();
+    const newUrl = remaining 
+      ? window.location.pathname + window.location.search + '#' + remaining
+      : window.location.pathname + window.location.search;
+    
+    history.replaceState(null, '', newUrl);
+  }
+}
+
 async function boot() {
   // Show loading state
   $("#grid").innerHTML = `<div class="grid-loading"><div class="auth-spinner"></div><p>Loading recipes...</p></div>`;
@@ -760,34 +838,63 @@ async function boot() {
     wrap.insertBefore(banner, wrap.firstChild);
   }
   
-  // Check for auth callback (magic link, OAuth)
   if (configured) {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get('access_token') || hashParams.get('type') === 'recovery') {
-      // Let Supabase handle the auth callback
-      history.replaceState(null, '', window.location.pathname);
-    }
+    // Check if this is an auth callback (magic link, OAuth, recovery)
+    // IMPORTANT: Do NOT clear the hash until AFTER supabase-js has consumed it
+    // supabase.auth.getSession() with detectSessionInUrl: true will process the tokens
+    const isAuthCallback = hasAuthTokensInHash();
     
-    // Check current auth state
-    const user = await checkAuth();
-    updateAuthUI(user);
-    
-    // Listen for auth changes
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        updateAuthUI(session?.user || null);
-        loadRecipesFromSupabase();
+    try {
+      // Auth check with timeout (8 seconds)
+      // This also processes any auth tokens in the URL hash
+      const user = await withTimeout(
+        checkAuth(),
+        8000,
+        'Auth check timed out'
+      );
+      updateAuthUI(user);
+      
+      // NOW it's safe to clean auth tokens from URL (session is established)
+      if (isAuthCallback) {
+        cleanAuthTokensFromUrl();
+        if (user) {
+          toast(`Welcome${user.email ? ', ' + user.email.split('@')[0] : ''}!`);
+        }
       }
-    });
-    
-    // Load recipes from Supabase
-    await loadRecipesFromSupabase();
+      
+      // Listen for auth changes (sign in/out from other tabs, token refresh, etc.)
+      supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state change:', event);
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          updateAuthUI(session?.user || null);
+          if (event !== 'TOKEN_REFRESHED') {
+            loadRecipesFromSupabase();
+          }
+        }
+      });
+      
+      // Load recipes with timeout (10 seconds)
+      // Pass throwOnError=true so we can handle fallback here with proper error message
+      await withTimeout(
+        loadRecipesFromSupabase(true),
+        10000,
+        'Recipe loading timed out'
+      );
+    } catch (e) {
+      console.error('Boot error:', e);
+      const errorMsg = e.message || 'Unknown error';
+      toast(`Connection issue: ${errorMsg}. Showing cached recipes.`);
+      
+      // Fallback to recipes.json
+      await loadRecipesFromJSON();
+      updateAuthUI(null);
+    }
   } else {
     updateAuthUI(null);
     await loadRecipesFromJSON();
   }
   
-  // Handle hash-based recipe routing
+  // Handle hash-based recipe routing (only for app routes, not auth tokens)
   handleHashRoute();
   window.addEventListener('hashchange', handleHashRoute);
 }

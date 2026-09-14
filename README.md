@@ -33,17 +33,42 @@ A beautiful recipe collection app with Supabase backend. Browse, create, and sha
 1. Go to **Authentication** → **Providers** in Supabase dashboard
 2. Ensure **Email** provider is enabled
 3. Configure email settings:
-   - **Enable email confirmations**: Recommended for production
+   - **Enable email confirmations**: Recommended for production (users must verify email)
    - **Enable magic link login**: Yes (allows passwordless auth)
 
-### 4. Get Your API Keys
+### 4. Configure Site URL and Redirect URLs (Critical for GitHub Pages!)
+
+For authentication (magic links, email confirmation, password recovery) to work on GitHub Pages, you **must** configure the redirect URLs:
+
+1. Go to **Authentication** → **URL Configuration** in Supabase dashboard
+2. Set **Site URL**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
+   - Example: `https://mandavajag.github.io/CookingRecipes/`
+   - **Include the trailing slash!**
+3. Add to **Redirect URLs**:
+   - `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
+   - `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/**` (wildcard for any subpath)
+   - For local development: `http://localhost:8000/`, `http://localhost:3000/`, `http://127.0.0.1:8000/`
+
+**Checklist:**
+- [ ] Site URL matches your exact GitHub Pages URL (case-sensitive)
+- [ ] Trailing slash is included
+- [ ] Redirect URLs include your GitHub Pages URL
+- [ ] For wildcard redirects, add `/**` suffix
+
+> **Note:** Auth callbacks (magic links, OAuth) redirect to the Site URL. If it's wrong, users will land on a 404 or wrong site.
+
+### 6. Get Your API Keys
 
 1. Go to **Settings** → **API** in Supabase dashboard
 2. Copy your:
    - **Project URL**: `https://YOUR_PROJECT_REF.supabase.co`
-   - **anon/public key**: `sb_publishable_...` (safe for client-side)
+   - **anon/public key**: There are two formats available:
+     - **Legacy JWT** (recommended for CDN): `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+     - **Publishable key**: `sb_publishable_...`
+     
+   > **Tip:** For static sites using supabase-js from CDN (like GitHub Pages), the legacy JWT format has better compatibility. Both are equally safe for client-side use.
 
-### 5. Configure the App
+### 7. Configure the App
 
 The app reads from `config.js`. For a static GitHub Pages deploy, the default values are already configured. If you need to change them:
 
@@ -65,7 +90,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key_here
 
 > **Note:** The publishable/anon key is safe to commit. All security is enforced server-side via Row Level Security (RLS).
 
-### 6. Deploy to GitHub Pages
+### 8. Deploy to GitHub Pages
 
 **Option A: Direct Push (Simple)**
 
@@ -238,9 +263,29 @@ UPDATE recipes SET title = 'Hacked' WHERE created_by != auth.uid();
 
 ### Authentication not working
 
-- Ensure Email provider is enabled in Supabase dashboard
-- Check that your site URL is added to **Authentication** → **URL Configuration** → **Site URL**
-- For magic links, ensure **Redirect URLs** includes your GitHub Pages URL
+**Checklist:**
+
+1. **Email provider enabled?**
+   - Go to **Authentication** → **Providers** → **Email** should be ON
+
+2. **Site URL correct?** (Most common issue!)
+   - Go to **Authentication** → **URL Configuration**
+   - Site URL must **exactly** match your GitHub Pages URL
+   - Example: `https://mandavajag.github.io/CookingRecipes/`
+   - Include trailing slash, use correct case
+
+3. **Redirect URLs include your site?**
+   - Add your full GitHub Pages URL to Redirect URLs
+   - Add wildcard variant: `https://yoursite.github.io/repo/**`
+
+4. **Magic links timing out?**
+   - Check spam/junk folder
+   - Verify Supabase email rate limits (free tier: 4 emails/hour)
+   - Test with a different email address
+
+5. **"Invalid claim: missing sub claim" or similar JWT errors?**
+   - Try using the legacy JWT anon key instead of publishable key
+   - Get it from Settings → API → Project API keys → anon (the long `eyJ...` one)
 
 ### RLS errors
 
