@@ -249,7 +249,7 @@ const ACCENTS = {
 };
 
 // Supabase client initialization
-let supabase = null;
+let supabaseClient = null;
 let currentUser = null;
 let supabaseConfigured = false;
 
@@ -265,7 +265,7 @@ function initSupabase() {
   }
   
   try {
-    supabase = window.supabase.createClient(
+    supabaseClient = window.supabase.createClient(
       KitchenConfig.SUPABASE_URL,
       KitchenConfig.SUPABASE_ANON_KEY,
       {
@@ -413,7 +413,7 @@ async function checkAuth() {
   if (!supabaseConfigured) return null;
   
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     return session?.user || null;
   } catch (e) {
     console.error('Auth check failed:', e);
@@ -503,11 +503,11 @@ async function handleAuthSubmit(e) {
   try {
     let result;
     if (authMode === 'signin') {
-      result = await supabase.auth.signInWithPassword({ email, password });
+      result = await supabaseClient.auth.signInWithPassword({ email, password });
     } else {
       // Include redirect URL for email confirmation link
       const redirectUrl = window.location.origin + window.location.pathname;
-      result = await supabase.auth.signUp({ 
+      result = await supabaseClient.auth.signUp({ 
         email, 
         password,
         options: { emailRedirectTo: redirectUrl }
@@ -548,7 +548,7 @@ async function handleMagicLink() {
   showAuthState('loading');
   
   try {
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabaseClient.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin + window.location.pathname }
     });
@@ -568,7 +568,7 @@ async function handleLogout() {
   if (!supabaseConfigured) return;
   
   try {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     updateAuthUI(null);
     toast("Signed out");
     await loadRecipesFromSupabase();
@@ -587,7 +587,7 @@ async function loadRecipesFromSupabase(throwOnError = false) {
   }
   
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('recipes')
       .select('*')
       .order('created_at', { ascending: false });
@@ -704,13 +704,13 @@ async function saveRecipe(recipe) {
       const data = toSupabaseFormat(recipe);
       
       if (recipe.supabaseId) {
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('recipes')
           .update(data)
           .eq('id', recipe.supabaseId);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('recipes')
           .insert([data]);
         if (error) throw error;
@@ -756,7 +756,7 @@ async function deleteRecipeFromSupabase(recipeId, supabaseId) {
   }
   
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('recipes')
       .delete()
       .eq('id', supabaseId);
@@ -863,7 +863,7 @@ async function boot() {
       }
       
       // Listen for auth changes (sign in/out from other tabs, token refresh, etc.)
-      supabase.auth.onAuthStateChange((event, session) => {
+      supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log('Auth state change:', event);
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
           updateAuthUI(session?.user || null);
