@@ -577,18 +577,25 @@ async function loadRecipesFromSupabase() {
     if (error) throw error;
     
     baseRecipes = (data || []).map(normalizeFromSupabase);
-    recipes = mergeRecipes(baseRecipes, loadLocal());
+    // Only merge local if demo mode enabled (production: server-only)
+    recipes = mergeRecipes(baseRecipes, getLocalRecipes());
     renderFilters();
     renderGrid();
     updateStats();
   } catch (e) {
     console.error('Failed to load from Supabase:', e);
-    toast("Couldn't connect to server — showing cached data");
-    await loadRecipesFromJSON();
+    toast("Couldn't load recipes from server");
+    // Show empty state, don't fall back to local/JSON in production
+    baseRecipes = [];
+    recipes = [];
+    renderFilters();
+    renderGrid();
+    updateStats();
   }
 }
 
 async function loadRecipesFromJSON() {
+  // This path is only used when Supabase is NOT configured (demo mode)
   try {
     const res = await fetch("./recipes.json", { cache: "no-store" });
     if (!res.ok) throw new Error("fetch failed");
@@ -596,7 +603,8 @@ async function loadRecipesFromJSON() {
   } catch {
     baseRecipes = [];
   }
-  recipes = mergeRecipes(baseRecipes, loadLocal());
+  // Demo mode: merge local recipes if fallback enabled
+  recipes = mergeRecipes(baseRecipes, getLocalRecipes());
   renderFilters();
   renderGrid();
   updateStats();
@@ -885,13 +893,18 @@ let openId = null;
 let editingIngredients = false;
 
 function upsertLocalRecipe(recipe) {
+  // Only called in demo mode (Supabase not configured + fallback enabled)
+  if (!KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK) {
+    console.warn('upsertLocalRecipe called but fallback disabled');
+    return;
+  }
   const local = loadLocal();
   const idx = local.findIndex(x => String(x.id) === String(recipe.id));
   const { total, ...rest } = normalize(recipe);
   if (idx >= 0) local[idx] = rest;
   else local.push(rest);
   saveLocal(local);
-  recipes = mergeRecipes(baseRecipes, local);
+  recipes = mergeRecipes(baseRecipes, getLocalRecipes());
   renderFilters();
   renderGrid();
   updateStats();
