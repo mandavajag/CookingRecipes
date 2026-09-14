@@ -9,7 +9,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=6">
+  <link rel="stylesheet" href="./styles.css?v=7">
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- App Config -->
+  <script src="./config.js"></script>
 </head>
 <body>
   <header class="topbar" id="topbar">
@@ -24,8 +28,11 @@
       </a>
       <nav class="topnav" aria-label="Primary">
         <a class="nav-link" href="#recipes">Recipes</a>
-        <button type="button" class="nav-link" id="nav-add">Add</button>
+        <button type="button" class="nav-link auth-required" id="nav-add">Add</button>
       </nav>
+      <div class="user-area" id="user-area">
+        <button type="button" class="nav-link" id="btn-login">Sign in</button>
+      </div>
       <div class="search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         <input id="search" type="search" placeholder="Search recipes, ingredients, cuisines…" aria-label="Search recipes" enterkeyhint="search">
@@ -44,7 +51,8 @@
         <p class="hero-sub">Your recipes, built for the counter — checklists, step-by-step guidance, and notes from the kitchen. Add as you go. Export anytime.</p>
         <div class="hero-cta">
           <a class="btn-primary" href="#recipes">Browse recipes →</a>
-          <button type="button" class="btn-ghost" id="hero-add">+ Add your own</button>
+          <button type="button" class="btn-ghost auth-required" id="hero-add">+ Add your own</button>
+          <button type="button" class="btn-ghost login-prompt" id="hero-login">Sign in to add recipes</button>
         </div>
       </div>
       <div class="hero-stats" aria-label="Collection stats">
@@ -72,9 +80,13 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
       Export
     </button>
-    <button class="fab-primary" id="btn-add-fab" type="button">
+    <button class="fab-primary auth-required" id="btn-add-fab" type="button">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       Add recipe
+    </button>
+    <button class="fab-primary login-prompt" id="btn-login-fab" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      Sign in
     </button>
   </div>
 
@@ -89,6 +101,17 @@
     <div class="detail-hero" id="detail-hero">
       <div class="detail-hero-mark" id="detail-hero-mark" aria-hidden="true"></div>
       <div class="detail-hero-overlay"></div>
+      <div class="detail-actions" id="detail-actions">
+        <button type="button" class="detail-action-btn" id="btn-share" aria-label="Share recipe" title="Copy link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </button>
+        <button type="button" class="detail-action-btn owner-only" id="btn-edit-recipe" aria-label="Edit recipe" title="Edit" hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button type="button" class="detail-action-btn owner-only danger" id="btn-delete-recipe" aria-label="Delete recipe" title="Delete" hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
       <button type="button" class="detail-close" id="detail-close" aria-label="Close recipe">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
@@ -157,9 +180,59 @@
     </div>
   </section>
 
+  <!-- Auth Modal -->
+  <section class="sheet auth-sheet" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" hidden>
+    <div class="sheet-head">
+      <div>
+        <h2 class="sheet-title" id="auth-title">Sign in to Kitchen</h2>
+        <p class="sheet-subtitle">Create and save your own recipes</p>
+      </div>
+      <button type="button" class="detail-close static" id="auth-close" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body editor-body">
+      <div id="auth-content">
+        <form class="form-grid" id="auth-form" autocomplete="off">
+          <label class="field">Email address
+            <input name="email" type="email" required placeholder="you@example.com" autocomplete="email">
+          </label>
+          <label class="field" id="password-field">Password
+            <input name="password" type="password" minlength="6" placeholder="At least 6 characters" autocomplete="current-password">
+          </label>
+          <div class="form-actions">
+            <button type="button" class="btn-ghost-sm" id="auth-toggle">Need an account? Sign up</button>
+            <button type="submit" class="btn-solid" id="auth-submit">Sign in</button>
+          </div>
+        </form>
+        <div class="auth-divider"><span>or</span></div>
+        <button type="button" class="btn-magic-link" id="btn-magic-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Send magic link instead
+        </button>
+        <p class="auth-hint">Magic link sends a sign-in email — no password needed.</p>
+      </div>
+      <div id="auth-loading" class="auth-state" hidden>
+        <div class="auth-spinner"></div>
+        <p>Checking authentication...</p>
+      </div>
+      <div id="auth-success" class="auth-state" hidden>
+        <div class="auth-checkmark">✓</div>
+        <p id="auth-success-msg">Check your email for the magic link!</p>
+      </div>
+      <div id="auth-error" class="auth-state" hidden>
+        <p class="auth-error-text" id="auth-error-msg">Something went wrong</p>
+        <button type="button" class="btn-ghost-sm" id="auth-retry">Try again</button>
+      </div>
+    </div>
+  </section>
+
   <div class="toast" id="toast" role="status"></div>
 
   <script>
+// ============================================================================
+// CONFIGURATION & CONSTANTS
+// ============================================================================
 const STORAGE_KEY = "kitchen.recipes.v1";
 const ACCENTS = {
   Street: "#3a5a40",
@@ -174,6 +247,35 @@ const ACCENTS = {
   French: "#4a4558",
   Other: "#283618",
 };
+
+// Supabase client initialization
+let supabase = null;
+let currentUser = null;
+let supabaseConfigured = false;
+
+function initSupabase() {
+  if (!window.supabase || !window.KitchenConfig) {
+    console.warn('Supabase or config not loaded');
+    return false;
+  }
+  
+  if (!KitchenConfig.isConfigured()) {
+    console.warn('Supabase not configured - using local storage only');
+    return false;
+  }
+  
+  try {
+    supabase = window.supabase.createClient(
+      KitchenConfig.SUPABASE_URL,
+      KitchenConfig.SUPABASE_ANON_KEY
+    );
+    supabaseConfigured = true;
+    return true;
+  } catch (e) {
+    console.error('Failed to initialize Supabase:', e);
+    return false;
+  }
+}
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -283,19 +385,390 @@ function accent(cuisine) {
   return ACCENTS[cuisine] || ACCENTS.Other;
 }
 
-async function boot() {
+// ============================================================================
+// AUTHENTICATION
+// ============================================================================
+let authMode = 'signin'; // 'signin' or 'signup'
+
+async function checkAuth() {
+  if (!supabaseConfigured) return null;
+  
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user || null;
+  } catch (e) {
+    console.error('Auth check failed:', e);
+    return null;
+  }
+}
+
+function updateAuthUI(user) {
+  currentUser = user;
+  const userArea = $("#user-area");
+  
+  if (user) {
+    document.body.classList.add('logged-in');
+    const initial = (user.email || 'U')[0].toUpperCase();
+    const displayEmail = user.email?.split('@')[0] || 'User';
+    userArea.innerHTML = `
+      <div class="user-badge">
+        <div class="user-avatar">${escapeHtml(initial)}</div>
+        <span>${escapeHtml(displayEmail)}</span>
+      </div>
+      <button type="button" class="btn-logout" id="btn-logout">Sign out</button>
+    `;
+    $("#btn-logout").addEventListener("click", handleLogout);
+  } else {
+    document.body.classList.remove('logged-in');
+    userArea.innerHTML = `<button type="button" class="nav-link" id="btn-login">Sign in</button>`;
+    $("#btn-login").addEventListener("click", openAuthModal);
+  }
+}
+
+function openAuthModal() {
+  showAuthState('form');
+  authMode = 'signin';
+  updateAuthForm();
+  showSheet("auth-modal");
+}
+
+function closeAuthModal() {
+  $("#auth-modal").classList.remove("open");
+  $("#auth-modal").hidden = true;
+  closeSheets();
+}
+
+function showAuthState(state) {
+  const content = $("#auth-content");
+  const loading = $("#auth-loading");
+  const success = $("#auth-success");
+  const error = $("#auth-error");
+  
+  content.hidden = state !== 'form';
+  loading.hidden = state !== 'loading';
+  success.hidden = state !== 'success';
+  error.hidden = state !== 'error';
+}
+
+function updateAuthForm() {
+  const toggle = $("#auth-toggle");
+  const submit = $("#auth-submit");
+  const passwordField = $("#password-field");
+  
+  if (authMode === 'signin') {
+    toggle.textContent = "Need an account? Sign up";
+    submit.textContent = "Sign in";
+    passwordField.querySelector('input').required = true;
+  } else {
+    toggle.textContent = "Already have an account? Sign in";
+    submit.textContent = "Create account";
+    passwordField.querySelector('input').required = true;
+  }
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  if (!supabaseConfigured) {
+    toast("Supabase not configured");
+    return;
+  }
+  
+  const form = e.target;
+  const email = form.email.value.trim();
+  const password = form.password.value;
+  
+  if (!email) return;
+  
+  showAuthState('loading');
+  
+  try {
+    let result;
+    if (authMode === 'signin') {
+      result = await supabase.auth.signInWithPassword({ email, password });
+    } else {
+      result = await supabase.auth.signUp({ email, password });
+    }
+    
+    if (result.error) throw result.error;
+    
+    if (authMode === 'signup' && !result.data.session) {
+      $("#auth-success-msg").textContent = "Check your email to confirm your account!";
+      showAuthState('success');
+    } else {
+      updateAuthUI(result.data.user);
+      closeAuthModal();
+      toast(`Welcome${result.data.user?.email ? ', ' + result.data.user.email.split('@')[0] : ''}!`);
+      await loadRecipesFromSupabase();
+    }
+  } catch (err) {
+    console.error('Auth error:', err);
+    $("#auth-error-msg").textContent = err.message || "Authentication failed";
+    showAuthState('error');
+  }
+}
+
+async function handleMagicLink() {
+  if (!supabaseConfigured) {
+    toast("Supabase not configured");
+    return;
+  }
+  
+  const email = $("#auth-form").email.value.trim();
+  if (!email) {
+    toast("Enter your email first");
+    return;
+  }
+  
+  showAuthState('loading');
+  
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    });
+    
+    if (error) throw error;
+    
+    $("#auth-success-msg").textContent = "Check your email for the magic link!";
+    showAuthState('success');
+  } catch (err) {
+    console.error('Magic link error:', err);
+    $("#auth-error-msg").textContent = err.message || "Failed to send magic link";
+    showAuthState('error');
+  }
+}
+
+async function handleLogout() {
+  if (!supabaseConfigured) return;
+  
+  try {
+    await supabase.auth.signOut();
+    updateAuthUI(null);
+    toast("Signed out");
+    await loadRecipesFromSupabase();
+  } catch (err) {
+    console.error('Logout error:', err);
+    toast("Sign out failed");
+  }
+}
+
+// ============================================================================
+// DATA LAYER - SUPABASE INTEGRATION
+// ============================================================================
+async function loadRecipesFromSupabase() {
+  if (!supabaseConfigured) {
+    return loadRecipesFromJSON();
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('recipes')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    baseRecipes = (data || []).map(normalizeFromSupabase);
+    recipes = mergeRecipes(baseRecipes, loadLocal());
+    renderFilters();
+    renderGrid();
+    updateStats();
+  } catch (e) {
+    console.error('Failed to load from Supabase:', e);
+    toast("Couldn't connect to server — showing cached data");
+    await loadRecipesFromJSON();
+  }
+}
+
+async function loadRecipesFromJSON() {
   try {
     const res = await fetch("./recipes.json", { cache: "no-store" });
     if (!res.ok) throw new Error("fetch failed");
     baseRecipes = await res.json();
   } catch {
     baseRecipes = [];
-    toast("Couldn't load recipes.json — using local only");
   }
   recipes = mergeRecipes(baseRecipes, loadLocal());
   renderFilters();
   renderGrid();
   updateStats();
+}
+
+function normalizeFromSupabase(r) {
+  return {
+    id: r.slug || r.id,
+    supabaseId: r.id,
+    title: r.title || "Untitled",
+    cuisine: r.cuisine || "Other",
+    category: r.category || "",
+    prepTime: r.prep_time || 0,
+    cookTime: r.cook_time || 0,
+    servings: r.servings || "",
+    difficulty: r.difficulty || "",
+    tags: r.tags || [],
+    description: r.description || "",
+    videoLink: r.video_link || "",
+    columns: r.columns || [],
+    steps: r.steps || [],
+    notes: r.notes || "",
+    total: (r.prep_time || 0) + (r.cook_time || 0),
+    source: "supabase",
+    createdBy: r.created_by,
+    isOwner: currentUser && r.created_by === currentUser.id,
+  };
+}
+
+function toSupabaseFormat(r) {
+  return {
+    slug: r.id || generateSlug(r.title),
+    title: r.title,
+    cuisine: r.cuisine || "Other",
+    category: r.category || "",
+    prep_time: r.prepTime || 0,
+    cook_time: r.cookTime || 0,
+    servings: String(r.servings || ""),
+    difficulty: r.difficulty || "",
+    tags: r.tags || [],
+    columns: r.columns || [],
+    steps: r.steps || [],
+    notes: r.notes || "",
+    video_link: r.videoLink || "",
+    description: r.description || "",
+    created_by: currentUser?.id,
+  };
+}
+
+function generateSlug(title) {
+  return (title || 'recipe')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 60) + '-' + Date.now().toString(36);
+}
+
+async function saveRecipeToSupabase(recipe) {
+  if (!supabaseConfigured || !currentUser) {
+    upsertLocalRecipe(recipe);
+    return { success: true, local: true };
+  }
+  
+  try {
+    const data = toSupabaseFormat(recipe);
+    
+    if (recipe.supabaseId) {
+      const { error } = await supabase
+        .from('recipes')
+        .update(data)
+        .eq('id', recipe.supabaseId);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('recipes')
+        .insert([data]);
+      if (error) throw error;
+    }
+    
+    await loadRecipesFromSupabase();
+    return { success: true };
+  } catch (e) {
+    console.error('Save to Supabase failed:', e);
+    if (e.message?.includes('permission') || e.code === '42501') {
+      toast("You can only edit your own recipes");
+      return { success: false, error: 'permission' };
+    }
+    toast("Save failed — saved locally instead");
+    upsertLocalRecipe(recipe);
+    return { success: true, local: true };
+  }
+}
+
+async function deleteRecipeFromSupabase(recipeId, supabaseId) {
+  if (!supabaseConfigured || !currentUser || !supabaseId) {
+    return { success: false, error: 'Not authorized' };
+  }
+  
+  try {
+    const { error } = await supabase
+      .from('recipes')
+      .delete()
+      .eq('id', supabaseId);
+    
+    if (error) throw error;
+    
+    await loadRecipesFromSupabase();
+    return { success: true };
+  } catch (e) {
+    console.error('Delete failed:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+// ============================================================================
+// BOOT
+// ============================================================================
+async function boot() {
+  // Show loading state
+  $("#grid").innerHTML = `<div class="grid-loading"><div class="auth-spinner"></div><p>Loading recipes...</p></div>`;
+  
+  // Initialize Supabase
+  const configured = initSupabase();
+  
+  // Show config warning if not configured
+  if (!configured) {
+    const wrap = $("main .wrap");
+    const banner = document.createElement('div');
+    banner.className = 'config-banner';
+    banner.innerHTML = `
+      <span class="config-banner-icon">⚠️</span>
+      <div class="config-banner-text">
+        <strong>Supabase not configured</strong>
+        <p>Edit <code>config.js</code> with your Supabase URL and anon key. See README for setup instructions. Currently using local storage only.</p>
+      </div>
+    `;
+    wrap.insertBefore(banner, wrap.firstChild);
+  }
+  
+  // Check for auth callback (magic link, OAuth)
+  if (configured) {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.get('access_token') || hashParams.get('type') === 'recovery') {
+      // Let Supabase handle the auth callback
+      history.replaceState(null, '', window.location.pathname);
+    }
+    
+    // Check current auth state
+    const user = await checkAuth();
+    updateAuthUI(user);
+    
+    // Listen for auth changes
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        updateAuthUI(session?.user || null);
+        loadRecipesFromSupabase();
+      }
+    });
+    
+    // Load recipes from Supabase
+    await loadRecipesFromSupabase();
+  } else {
+    updateAuthUI(null);
+    await loadRecipesFromJSON();
+  }
+  
+  // Handle hash-based recipe routing
+  handleHashRoute();
+  window.addEventListener('hashchange', handleHashRoute);
+}
+
+function handleHashRoute() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#recipe/')) {
+    const slug = hash.substring(8);
+    const recipe = recipes.find(r => r.id === slug);
+    if (recipe) {
+      setTimeout(() => openDetail(recipe.id), 100);
+    }
+  }
 }
 
 function updateStats() {
@@ -350,6 +823,10 @@ function cardHTML(r) {
   const time = r.total ? `${r.total} min` : (r.servings ? `serves ${r.servings}` : "—");
   const mark = (r.cuisine || "K").charAt(0).toUpperCase();
   const tags = (r.tags || []).slice(0, 3).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
+  const ownerBadge = r.isOwner ? `<span class="owner-badge">yours</span>` : "";
+  const sourceBadge = r.source === "local" 
+    ? `<span class="tag local-tag">local</span>` 
+    : "";
   return `
     <button type="button" class="recipe" role="listitem" data-id="${escapeAttr(r.id)}" style="--accent:${color}">
       <div class="recipe-img" aria-hidden="true">
@@ -359,13 +836,14 @@ function cardHTML(r) {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           ${escapeHtml(time)}
         </span>
+        ${ownerBadge}
       </div>
       <div class="recipe-body">
         <h3>${escapeHtml(r.title)}</h3>
         <p class="desc">${escapeHtml(r.description || "Open for ingredients & steps.")}</p>
         <div class="recipe-foot">
           ${tags}
-          ${r.source === "local" ? `<span class="tag local-tag">local</span>` : ""}
+          ${sourceBadge}
         </div>
       </div>
     </button>`;
@@ -403,6 +881,17 @@ function openDetail(id, { editing = false } = {}) {
   $("#detail-hero-mark").textContent = (r.cuisine || "K").charAt(0).toUpperCase();
   $("#detail-cuisine").textContent = r.cuisine || "";
   $("#detail-title").textContent = r.title;
+
+  // Update URL for sharing (without triggering hashchange)
+  const newHash = `#recipe/${r.id}`;
+  if (window.location.hash !== newHash) {
+    history.replaceState(null, '', newHash);
+  }
+
+  // Show/hide owner-only buttons
+  const canEdit = r.isOwner || (r.source === 'local');
+  $("#btn-edit-recipe").hidden = !canEdit;
+  $("#btn-delete-recipe").hidden = !canEdit || !r.supabaseId;
 
   const meta = [];
   if (r.servings) meta.push(metaItem("Servings", String(r.servings)));
@@ -560,20 +1049,73 @@ function closeSheets() {
   $("#overlay").classList.remove("open");
   $("#detail").classList.remove("open");
   $("#editor").classList.remove("open");
+  $("#auth-modal")?.classList.remove("open");
   document.body.style.overflow = "";
+  
+  // Clear URL hash if it was a recipe URL
+  if (window.location.hash.startsWith('#recipe/')) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+  
   setTimeout(() => {
     if (!$("#detail").classList.contains("open") && !$("#editor").classList.contains("open")) {
       $("#overlay").hidden = true;
       $("#detail").hidden = true;
       $("#editor").hidden = true;
+      $("#auth-modal").hidden = true;
     }
   }, 280);
 }
 
-function openEditor() {
-  $("#recipe-form").reset();
+function openEditor(recipeToEdit = null) {
+  if (!currentUser && supabaseConfigured) {
+    toast("Sign in to add or edit recipes");
+    openAuthModal();
+    return;
+  }
+  
+  const form = $("#recipe-form");
+  form.reset();
+  
+  if (recipeToEdit) {
+    form.dataset.editId = recipeToEdit.id;
+    form.dataset.supabaseId = recipeToEdit.supabaseId || '';
+    $("#editor-title").textContent = "Edit recipe";
+    form.querySelector('[name=title]').value = recipeToEdit.title || '';
+    form.querySelector('[name=cuisine]').value = recipeToEdit.cuisine || '';
+    form.querySelector('[name=servings]').value = recipeToEdit.servings || '';
+    form.querySelector('[name=prepTime]').value = recipeToEdit.prepTime || '';
+    form.querySelector('[name=cookTime]').value = recipeToEdit.cookTime || '';
+    form.querySelector('[name=videoLink]').value = recipeToEdit.videoLink || '';
+    form.querySelector('[name=description]').value = recipeToEdit.description || '';
+    form.querySelector('[name=notes]').value = recipeToEdit.notes || '';
+    
+    // Convert columns to text format
+    const ingText = (recipeToEdit.columns || []).map(col => {
+      const header = col.title !== 'Ingredients' ? `## ${col.title}\n` : '';
+      const items = (col.items || []).map(item => 
+        item.qty ? `${item.qty} | ${item.name}` : item.name
+      ).join('\n');
+      return header + items;
+    }).join('\n\n');
+    form.querySelector('[name=ingredientsText]').value = ingText;
+    form.querySelector('[name=stepsText]').value = (recipeToEdit.steps || []).join('\n');
+    
+    // Show delete button for owned recipes
+    const deleteBtn = $("#btn-delete-recipe");
+    if (deleteBtn) {
+      deleteBtn.hidden = !recipeToEdit.isOwner;
+    }
+  } else {
+    delete form.dataset.editId;
+    delete form.dataset.supabaseId;
+    $("#editor-title").textContent = "Add recipe";
+    const deleteBtn = $("#btn-delete-recipe");
+    if (deleteBtn) deleteBtn.hidden = true;
+  }
+  
   showSheet("editor");
-  setTimeout(() => $("#recipe-form [name=title]").focus(), 50);
+  setTimeout(() => form.querySelector('[name=title]').focus(), 50);
 }
 
 function exportJSON() {
@@ -626,6 +1168,54 @@ $("#detail-close").addEventListener("click", closeSheets);
 $("#editor-close").addEventListener("click", closeSheets);
 $("#editor-cancel").addEventListener("click", closeSheets);
 $("#overlay").addEventListener("click", closeSheets);
+
+// Detail action buttons
+$("#btn-share").addEventListener("click", () => {
+  const url = window.location.href;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      toast("Link copied to clipboard!");
+    }).catch(() => {
+      toast("Couldn't copy link");
+    });
+  } else {
+    prompt("Copy this link:", url);
+  }
+});
+
+$("#btn-edit-recipe").addEventListener("click", () => {
+  const r = recipes.find(x => x.id === openId);
+  if (r) {
+    closeSheets();
+    setTimeout(() => openEditor(r), 100);
+  }
+});
+
+$("#btn-delete-recipe").addEventListener("click", async () => {
+  const r = recipes.find(x => x.id === openId);
+  if (!r) return;
+  
+  if (!confirm(`Delete "${r.title}"? This cannot be undone.`)) return;
+  
+  if (r.supabaseId) {
+    const result = await deleteRecipeFromSupabase(r.id, r.supabaseId);
+    if (result.success) {
+      closeSheets();
+      toast(`Deleted "${r.title}"`);
+    } else {
+      toast(result.error || "Couldn't delete recipe");
+    }
+  } else if (r.source === 'local') {
+    const local = loadLocal().filter(x => x.id !== r.id);
+    saveLocal(local);
+    recipes = mergeRecipes(baseRecipes, local);
+    renderFilters();
+    renderGrid();
+    updateStats();
+    closeSheets();
+    toast(`Deleted "${r.title}"`);
+  }
+});
 
 function saveIngredientEdits() {
   const r = recipes.find(x => x.id === openId);
@@ -706,9 +1296,10 @@ window.addEventListener("scroll", () => {
   $("#topbar").classList.toggle("scrolled", window.scrollY > 8);
 }, { passive: true });
 
-$("#recipe-form").addEventListener("submit", e => {
+$("#recipe-form").addEventListener("submit", async e => {
   e.preventDefault();
-  const fd = new FormData(e.target);
+  const form = e.target;
+  const fd = new FormData(form);
   const title = String(fd.get("title") || "").trim();
   if (!title) return;
 
@@ -718,8 +1309,12 @@ $("#recipe-form").addEventListener("submit", e => {
     .map(s => s.trim())
     .filter(Boolean);
 
+  const isEdit = form.dataset.editId;
+  const existingRecipe = isEdit ? recipes.find(r => r.id === form.dataset.editId) : null;
+
   const recipe = normalize({
-    id: `local-${Date.now()}`,
+    id: isEdit ? form.dataset.editId : generateSlug(title),
+    supabaseId: form.dataset.supabaseId || existingRecipe?.supabaseId || null,
     title,
     cuisine: String(fd.get("cuisine") || "Other").trim() || "Other",
     servings: Number(fd.get("servings")) || "",
@@ -730,13 +1325,20 @@ $("#recipe-form").addEventListener("submit", e => {
     notes: String(fd.get("notes") || "").trim(),
     columns,
     steps: steps.length ? steps : ["Prepare and serve."],
-    tags: ["new"],
+    tags: existingRecipe?.tags || ["new"],
   });
 
-  upsertLocalRecipe(recipe);
-  closeSheets();
-  toast(`Saved “${recipe.title}”`);
-  openDetail(recipe.id);
+  // Save to Supabase if logged in, otherwise local
+  const result = await saveRecipeToSupabase(recipe);
+  
+  if (result.success) {
+    closeSheets();
+    toast(result.local ? `Saved "${recipe.title}" locally` : `Saved "${recipe.title}"`);
+    setTimeout(() => {
+      const saved = recipes.find(r => r.title === recipe.title) || recipe;
+      openDetail(saved.id);
+    }, 100);
+  }
 });
 
 $("#btn-reset-local").addEventListener("click", () => {
@@ -749,6 +1351,22 @@ $("#btn-reset-local").addEventListener("click", () => {
   toast("Local recipes cleared");
 });
 
+// Auth modal event listeners
+$("#btn-login")?.addEventListener("click", openAuthModal);
+$("#auth-close").addEventListener("click", closeAuthModal);
+$("#auth-form").addEventListener("submit", handleAuthSubmit);
+$("#auth-toggle").addEventListener("click", () => {
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  updateAuthForm();
+});
+$("#btn-magic-link").addEventListener("click", handleMagicLink);
+$("#auth-retry").addEventListener("click", () => showAuthState('form'));
+
+// Login prompt buttons
+$("#hero-login")?.addEventListener("click", openAuthModal);
+$("#btn-login-fab")?.addEventListener("click", openAuthModal);
+
+// Initialize app
 boot();
   </script>
 </body>
