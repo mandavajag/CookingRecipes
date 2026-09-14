@@ -254,7 +254,8 @@ let currentUser = null;
 let supabaseConfigured = false;
 
 function initSupabase() {
-  if (!window.supabase || !window.KitchenConfig) {
+  const configAvailable = typeof KitchenConfig !== 'undefined' && KitchenConfig;
+  if (!window.supabase || !configAvailable) {
     console.warn('Supabase or config not loaded');
     return false;
   }
@@ -1163,21 +1164,35 @@ function persistCheck(key, on) {
 
 function showSheet(which) {
   const overlay = $("#overlay");
-  const detail = $("#detail");
-  const editor = $("#editor");
+  const sheets = {
+    detail: $("#detail"),
+    editor: $("#editor"),
+    "auth-modal": $("#auth-modal")
+  };
+  const closeButtons = {
+    detail: "#detail-close",
+    editor: "#editor-close",
+    "auth-modal": "#auth-close"
+  };
+  
   overlay.hidden = false;
   void overlay.offsetWidth;
   overlay.classList.add("open");
 
-  const show = which === "detail" ? detail : editor;
-  const hide = which === "detail" ? editor : detail;
-  hide.classList.remove("open");
-  hide.hidden = true;
-  show.hidden = false;
-  void show.offsetWidth;
-  show.classList.add("open");
+  // Hide all sheets except the one we're opening
+  for (const [key, sheet] of Object.entries(sheets)) {
+    if (key === which) {
+      sheet.hidden = false;
+      void sheet.offsetWidth;
+      sheet.classList.add("open");
+    } else {
+      sheet.classList.remove("open");
+      sheet.hidden = true;
+    }
+  }
+  
   document.body.style.overflow = "hidden";
-  (which === "detail" ? $("#detail-close") : $("#editor-close")).focus();
+  $(closeButtons[which])?.focus();
 }
 
 function closeSheets() {
@@ -1197,7 +1212,9 @@ function closeSheets() {
   }
   
   setTimeout(() => {
-    if (!$("#detail").classList.contains("open") && !$("#editor").classList.contains("open")) {
+    if (!$("#detail").classList.contains("open") && 
+        !$("#editor").classList.contains("open") && 
+        !$("#auth-modal").classList.contains("open")) {
       $("#overlay").hidden = true;
       $("#detail").hidden = true;
       $("#editor").hidden = true;

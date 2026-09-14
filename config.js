@@ -72,3 +72,6 @@ const KitchenConfig = (() => {
 
 // Freeze to prevent accidental modification
 Object.freeze(KitchenConfig);
+
+// Attach to window for script-tag usage (top-level const isn't on window)
+window.KitchenConfig = KitchenConfig;
