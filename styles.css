@@ -1715,3 +1715,123 @@ body.logged-in .login-prompt {
   .cook-scroll { padding: 0 18px 28px; }
   .sheet-body.editor-body { padding: 18px 18px calc(24px + var(--safe-b)); }
 }
+
+/* ── Paste Recipe Section ────────────────────────────────── */
+.paste-section {
+  margin-bottom: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper-warm);
+  overflow: hidden;
+}
+
+.paste-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+}
+
+.paste-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.btn-toggle-paste {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sage);
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background .15s, color .15s;
+}
+
+.btn-toggle-paste:hover {
+  background: rgba(58, 90, 64, 0.1);
+}
+
+.btn-toggle-paste .toggle-hide {
+  display: none;
+}
+
+.paste-section.expanded .btn-toggle-paste .toggle-show {
+  display: none;
+}
+
+.paste-section.expanded .btn-toggle-paste .toggle-hide {
+  display: inline;
+}
+
+.paste-body {
+  padding: 0 18px 18px;
+}
+
+.paste-body textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.paste-body textarea:focus {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px rgba(58, 90, 64, 0.15);
+}
+
+.paste-body textarea::placeholder {
+  color: var(--mute);
+}
+
+.paste-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-parse {
+  height: 42px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: var(--sage);
+  color: #fff;
+  transition: background .15s, transform .15s;
+}
+
+.btn-parse:hover {
+  background: var(--sage-deep);
+}
+
+.btn-parse:active {
+  transform: scale(0.97);
+}
+
+.btn-clear-paste {
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  background: transparent;
+  color: var(--mute);
+  border: 1px solid var(--line);
+  transition: all .15s;
+}
+
+.btn-clear-paste:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}

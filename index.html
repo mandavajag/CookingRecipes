@@ -135,6 +135,23 @@
       </button>
     </div>
     <div class="sheet-body editor-body">
+      <!-- Paste Recipe Section -->
+      <div class="paste-section" id="paste-section">
+        <div class="paste-header">
+          <div class="paste-label">Paste recipe text</div>
+          <button type="button" class="btn-toggle-paste" id="btn-toggle-paste">
+            <span class="toggle-show">Show paste area</span>
+            <span class="toggle-hide">Hide</span>
+          </button>
+        </div>
+        <div class="paste-body" id="paste-body" hidden>
+          <textarea id="paste-input" placeholder="Paste recipe text here (from a Reel transcript, chat, or any recipe format)..."></textarea>
+          <div class="paste-actions">
+            <button type="button" class="btn-parse" id="btn-parse">Parse recipe</button>
+            <button type="button" class="btn-clear-paste" id="btn-clear-paste">Clear</button>
+          </div>
+        </div>
+      </div>
       <form class="form-grid two" id="recipe-form" autocomplete="off">
         <label class="field span-2">Title *
           <input name="title" required placeholder="e.g. Garlic butter shrimp" maxlength="120">
@@ -399,6 +416,314 @@ function parseIngredientBlock(text) {
   }
   push();
   return columns;
+}
+
+// ============================================================================
+// RECIPE PASTE PARSER
+// ============================================================================
+const CUISINE_KEYWORDS = {
+  'punjabi': 'Indian',
+  'indian': 'Indian',
+  'desi': 'Indian',
+  'tandoori': 'Indian',
+  'biryani': 'Indian',
+  'curry': 'Indian',
+  'masala': 'Indian',
+  'italian': 'Italian',
+  'pasta': 'Italian',
+  'pizza': 'Italian',
+  'risotto': 'Italian',
+  'mexican': 'Mexican',
+  'taco': 'Mexican',
+  'burrito': 'Mexican',
+  'quesadilla': 'Mexican',
+  'chinese': 'Chinese',
+  'wok': 'Chinese',
+  'stir fry': 'Chinese',
+  'japanese': 'Japanese',
+  'sushi': 'Japanese',
+  'ramen': 'Japanese',
+  'teriyaki': 'Japanese',
+  'thai': 'Thai',
+  'pad thai': 'Thai',
+  'french': 'French',
+  'american': 'American',
+  'burger': 'American',
+  'bbq': 'American',
+  'turkish': 'Turkish',
+  'kebab': 'Turkish',
+  'middle eastern': 'Middle Eastern',
+  'mediterranean': 'Mediterranean',
+  'greek': 'Greek',
+  'korean': 'Korean',
+  'vietnamese': 'Vietnamese',
+  'street': 'Street',
+  'comfort': 'Comfort',
+};
+
+function parseRecipeText(text) {
+  if (!text || typeof text !== 'string') {
+    return { success: false, error: 'No text provided' };
+  }
+
+  const lines = text.split('\n').map(l => l.trim());
+  const result = {
+    title: '',
+    cuisine: 'Other',
+    description: '',
+    servings: '',
+    prepTime: '',
+    cookTime: '',
+    videoLink: '',
+    columns: [],
+    steps: [],
+    notes: '',
+    tags: [],
+  };
+
+  // Extract URL (especially Facebook video links)
+  const urlMatch = text.match(/https?:\/\/[^\s]+/gi);
+  if (urlMatch) {
+    result.videoLink = urlMatch[urlMatch.length - 1]; // Last URL is usually the source
+  }
+
+  // Extract title - multiple heuristics
+  let titleFound = false;
+  
+  // 1. Try "X - Full Recipe" pattern
+  const fullRecipeMatch = text.match(/^(.+?)\s*[-–—]\s*Full Recipe/mi);
+  if (fullRecipeMatch) {
+    result.title = fullRecipeMatch[1].replace(/^###?\s*/, '').replace(/\*\*/g, '').trim();
+    titleFound = true;
+  }
+  
+  // 2. Try first ### heading
+  if (!titleFound) {
+    const h3Match = text.match(/^###\s*(.+?)(?:\s*[-–—]|$)/m);
+    if (h3Match) {
+      result.title = h3Match[1].replace(/\*\*/g, '').trim();
+      titleFound = true;
+    }
+  }
+  
+  // 3. Try first **bold** text that looks like a dish name
+  if (!titleFound) {
+    const boldMatch = text.match(/\*\*([^*]+(?:chicken|curry|masala|biryani|pasta|rice|soup|salad|fish|beef|pork|lamb|shrimp|tofu|paneer|dal|naan|roti|pizza|burger|steak|stew|roast|bake|fry|grill)[^*]*)\*\*/i);
+    if (boldMatch) {
+      result.title = boldMatch[1].trim();
+      titleFound = true;
+    }
+  }
+  
+  // 4. Try first **bold** text
+  if (!titleFound) {
+    const anyBoldMatch = text.match(/\*\*([^*]{3,60})\*\*/);
+    if (anyBoldMatch) {
+      result.title = anyBoldMatch[1].trim();
+      titleFound = true;
+    }
+  }
+
+  // 5. Fallback to first non-empty line
+  if (!titleFound) {
+    for (const line of lines) {
+      if (line && !line.startsWith('http') && line.length > 2 && line.length < 100) {
+        result.title = line.replace(/^#+\s*/, '').replace(/\*\*/g, '').replace(/^[-*]\s*/, '').trim();
+        break;
+      }
+    }
+  }
+
+  // Clean up title
+  result.title = result.title.replace(/[-–—]\s*Full Recipe$/i, '').trim();
+
+  // Detect cuisine from text
+  const lowerText = text.toLowerCase();
+  for (const [keyword, cuisine] of Object.entries(CUISINE_KEYWORDS)) {
+    if (lowerText.includes(keyword)) {
+      result.cuisine = cuisine;
+      if (!result.tags.includes(cuisine.toLowerCase())) {
+        result.tags.push(cuisine.toLowerCase());
+      }
+      break;
+    }
+  }
+
+  // Extract description - text before first section header
+  const firstSectionIdx = text.search(/(\*\*For\s|###\s*Method|###\s*Ingredients|\*\*\d+\.\s)/i);
+  if (firstSectionIdx > 0) {
+    let desc = text.substring(0, firstSectionIdx).trim();
+    // Remove the title line from description
+    desc = desc.replace(/^###.+$/m, '').replace(/\*\*[^*]+\*\*/g, '').trim();
+    // Clean up
+    desc = desc.split('\n').filter(l => l.trim() && !l.trim().startsWith('http')).join(' ').trim();
+    if (desc.length > 10 && desc.length < 300) {
+      result.description = desc.substring(0, 200);
+    }
+  }
+
+  // Parse ingredient sections
+  // Look for **For X:** or **X:** patterns followed by bullet points
+  const ingredientSections = [];
+  const sectionRegex = /\*\*(?:For\s+)?([^:*]+?)(?:\s*[-–—][^:]*)?:\*\*\s*([\s\S]*?)(?=\*\*(?:For\s+)?[^:*]+?(?:\s*[-–—][^:]*)?:\*\*|###|$)/gi;
+  let match;
+  
+  while ((match = sectionRegex.exec(text)) !== null) {
+    const sectionTitle = match[1].trim();
+    const sectionContent = match[2].trim();
+    
+    // Skip method/steps sections
+    if (/method|steps|directions|instructions|to\s+finish/i.test(sectionTitle) && 
+        !/finish.*:/i.test(sectionTitle)) {
+      continue;
+    }
+    
+    // Parse bullet points
+    const items = [];
+    const bulletLines = sectionContent.split('\n');
+    
+    for (const line of bulletLines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      
+      // Match bullet points: * or -
+      const bulletMatch = trimmed.match(/^[*\-•]\s*(.+)$/);
+      if (bulletMatch) {
+        const itemText = bulletMatch[1].trim();
+        const parsed = parseIngredientLine(itemText);
+        if (parsed.name) {
+          items.push(parsed);
+        }
+      }
+    }
+    
+    if (items.length > 0) {
+      ingredientSections.push({
+        title: cleanSectionTitle(sectionTitle),
+        items
+      });
+    }
+  }
+  
+  result.columns = ingredientSections;
+
+  // Parse steps/method
+  const steps = [];
+  
+  // Look for ### Method section or numbered steps with **1. X:**
+  const methodMatch = text.match(/###\s*Method[^#]*?([\s\S]*?)(?=###|$)/i);
+  if (methodMatch) {
+    const methodContent = methodMatch[1];
+    // Parse **1. Step title:** followed by content
+    const stepRegex = /\*\*(\d+)\.\s*([^:*]+?):\*\*\s*([\s\S]*?)(?=\*\*\d+\.|$)/g;
+    let stepMatch;
+    while ((stepMatch = stepRegex.exec(methodContent)) !== null) {
+      const stepTitle = stepMatch[2].trim();
+      let stepContent = stepMatch[3].trim();
+      // Clean up step content
+      stepContent = stepContent.split('\n')
+        .map(l => l.trim())
+        .filter(l => l && !l.startsWith('http'))
+        .join(' ')
+        .trim();
+      if (stepContent) {
+        steps.push(`${stepTitle}: ${stepContent}`);
+      } else if (stepTitle) {
+        steps.push(stepTitle);
+      }
+    }
+  }
+  
+  // If no method section found, try standalone numbered steps
+  if (steps.length === 0) {
+    const numberedStepRegex = /^\s*(\d+)[.)]\s*(.+)$/gm;
+    let stepMatch;
+    while ((stepMatch = numberedStepRegex.exec(text)) !== null) {
+      const stepText = stepMatch[2].trim();
+      if (stepText && stepText.length > 3) {
+        steps.push(stepText);
+      }
+    }
+  }
+  
+  result.steps = steps;
+
+  // Extract notes - "Serve hot...", "Enjoy...", "Tip:", etc.
+  const notesPatterns = [
+    /(?:^|\n)\s*(?:serve|enjoy|tip:|note:|chef's tip:)\s*(.+)/gi,
+  ];
+  
+  for (const pattern of notesPatterns) {
+    const noteMatch = text.match(pattern);
+    if (noteMatch) {
+      let note = noteMatch[0].trim();
+      // Don't include URLs in notes
+      note = note.replace(/https?:\/\/[^\s]+/g, '').trim();
+      if (note && note.length > 5 && note.length < 300) {
+        result.notes = note;
+        break;
+      }
+    }
+  }
+
+  // Validate we have meaningful data
+  if (!result.title) {
+    return { success: false, error: 'Could not extract recipe title' };
+  }
+  
+  if (result.columns.length === 0 && result.steps.length === 0) {
+    return { success: false, error: 'Could not extract ingredients or steps' };
+  }
+
+  return { success: true, recipe: result };
+}
+
+function parseIngredientLine(text) {
+  // Try to split quantity from ingredient name
+  // Common patterns: "1 kg chicken", "2 tbsp oil", "1/2 cup flour", "salt to taste"
+  
+  const qtyPatterns = [
+    // Match: number + unit + ingredient
+    /^([\d½¼¾⅓⅔⅛]+(?:\s*[-\/]\s*[\d½¼¾⅓⅔⅛]+)?(?:\s*(?:kg|g|lb|oz|cup|cups|tbsp|tsp|ml|l|piece|pieces|clove|cloves|inch|cm|bunch|handful|pinch|dash)s?)?)\s+(.+)$/i,
+    // Match: number alone + ingredient
+    /^([\d½¼¾⅓⅔⅛]+(?:\s*[-\/]\s*[\d½¼¾⅓⅔⅛]+)?)\s+(.+)$/,
+  ];
+  
+  for (const pattern of qtyPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      return { qty: match[1].trim(), name: match[2].trim() };
+    }
+  }
+  
+  // No quantity found - whole thing is the name
+  return { qty: '', name: text };
+}
+
+function cleanSectionTitle(title) {
+  // Clean up section titles like "For Chicken Marination" -> "Chicken Marination"
+  return title
+    .replace(/^for\s+/i, '')
+    .replace(/\s*[-–—].*$/, '')
+    .trim() || 'Ingredients';
+}
+
+function recipeToFormText(recipe) {
+  // Convert parsed recipe to the form's expected text format
+  
+  // Ingredients: use ## Section headers and qty | name format
+  const ingredientsText = recipe.columns.map(col => {
+    const header = col.title !== 'Ingredients' ? `## ${col.title}\n` : '';
+    const items = col.items.map(item => 
+      item.qty ? `${item.qty} | ${item.name}` : item.name
+    ).join('\n');
+    return header + items;
+  }).join('\n\n');
+  
+  // Steps: one per line
+  const stepsText = recipe.steps.join('\n');
+  
+  return { ingredientsText, stepsText };
 }
 
 function accent(cuisine) {
@@ -1532,6 +1857,99 @@ $("#auth-retry").addEventListener("click", () => showAuthState('form'));
 // Login prompt buttons
 $("#hero-login")?.addEventListener("click", openAuthModal);
 $("#btn-login-fab")?.addEventListener("click", openAuthModal);
+
+// ============================================================================
+// PASTE RECIPE HANDLERS
+// ============================================================================
+$("#btn-toggle-paste").addEventListener("click", () => {
+  const section = $("#paste-section");
+  const body = $("#paste-body");
+  section.classList.toggle("expanded");
+  body.hidden = !section.classList.contains("expanded");
+  if (!body.hidden) {
+    setTimeout(() => $("#paste-input").focus(), 50);
+  }
+});
+
+$("#btn-clear-paste").addEventListener("click", () => {
+  $("#paste-input").value = "";
+  $("#paste-input").focus();
+});
+
+$("#btn-parse").addEventListener("click", () => {
+  const input = $("#paste-input").value.trim();
+  if (!input) {
+    toast("Paste some recipe text first");
+    return;
+  }
+  
+  const result = parseRecipeText(input);
+  
+  if (!result.success) {
+    toast(result.error || "Couldn't parse recipe");
+    return;
+  }
+  
+  const recipe = result.recipe;
+  const form = $("#recipe-form");
+  const { ingredientsText, stepsText } = recipeToFormText(recipe);
+  
+  // Fill form fields
+  form.querySelector('[name=title]').value = recipe.title || '';
+  form.querySelector('[name=cuisine]').value = recipe.cuisine || 'Other';
+  form.querySelector('[name=servings]').value = recipe.servings || '';
+  form.querySelector('[name=prepTime]').value = recipe.prepTime || '';
+  form.querySelector('[name=cookTime]').value = recipe.cookTime || '';
+  form.querySelector('[name=videoLink]').value = recipe.videoLink || '';
+  form.querySelector('[name=description]').value = recipe.description || '';
+  form.querySelector('[name=ingredientsText]').value = ingredientsText;
+  form.querySelector('[name=stepsText]').value = stepsText;
+  form.querySelector('[name=notes]').value = recipe.notes || '';
+  
+  // Collapse paste section
+  $("#paste-section").classList.remove("expanded");
+  $("#paste-body").hidden = true;
+  
+  // Build feedback message
+  const stats = [];
+  if (recipe.columns.length > 0) {
+    const totalIngs = recipe.columns.reduce((sum, col) => sum + col.items.length, 0);
+    stats.push(`${totalIngs} ingredients`);
+  }
+  if (recipe.steps.length > 0) {
+    stats.push(`${recipe.steps.length} steps`);
+  }
+  if (recipe.videoLink) {
+    stats.push('video link');
+  }
+  
+  toast(`Parsed: ${recipe.title.substring(0, 30)}${recipe.title.length > 30 ? '…' : ''} (${stats.join(', ')})`);
+  
+  // Focus title for review
+  form.querySelector('[name=title]').focus();
+});
+
+// Reset paste area when editor opens
+const originalOpenEditor = openEditor;
+function openEditorWithReset(recipeToEdit = null) {
+  // Reset paste area
+  $("#paste-input").value = "";
+  $("#paste-section").classList.remove("expanded");
+  $("#paste-body").hidden = true;
+  
+  // Call original
+  originalOpenEditor(recipeToEdit);
+}
+// Re-assign
+window.openEditor = openEditorWithReset;
+
+// Update references to use new openEditor
+$("#nav-add").removeEventListener("click", openEditor);
+$("#nav-add").addEventListener("click", () => openEditorWithReset());
+$("#hero-add").removeEventListener("click", openEditor);
+$("#hero-add").addEventListener("click", () => openEditorWithReset());
+$("#btn-add-fab").removeEventListener("click", openEditor);
+$("#btn-add-fab").addEventListener("click", () => openEditorWithReset());
 
 // Initialize app
 boot();
