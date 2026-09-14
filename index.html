@@ -352,8 +352,16 @@ function saveLocal(list) {
 
 function mergeRecipes(base, local) {
   const map = new Map();
-  for (const r of base) map.set(String(r.id), { ...normalize(r), source: "file" });
-  // Only include local recipes if fallback is enabled
+  for (const r of base) {
+    const normalized = normalize(r);
+    map.set(String(r.id), { 
+      ...normalized, 
+      source: r.source || "file",
+      supabaseId: r.supabaseId || normalized.supabaseId,
+      createdBy: r.createdBy || normalized.createdBy,
+      isOwner: r.isOwner ?? normalized.isOwner ?? false,
+    });
+  }
   if (KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK) {
     for (const r of local) map.set(String(r.id), { ...normalize(r), source: "local" });
   }
