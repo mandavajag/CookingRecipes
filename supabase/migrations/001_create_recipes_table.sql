@@ -65,7 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_recipes_search ON public.recipes USING gin(
 CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public
 AS $$
 BEGIN
@@ -81,16 +81,20 @@ CREATE TRIGGER recipes_updated_at
   EXECUTE FUNCTION public.update_updated_at();
 
 -- Trigger function: Force created_by to auth.uid() on INSERT
--- This prevents clients from spoofing ownership
+-- This prevents JWT clients from spoofing ownership while allowing
+-- service_role / SQL editor to set ownership explicitly (e.g., for seeds)
 CREATE OR REPLACE FUNCTION public.set_recipe_owner()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public
 AS $$
 BEGIN
-  -- Always set created_by to the authenticated user, ignoring client input
-  NEW.created_by = auth.uid();
+  -- Only override created_by when there's an authenticated JWT user
+  -- This locks down API clients but allows service_role to set ownership
+  IF auth.uid() IS NOT NULL THEN
+    NEW.created_by := auth.uid();
+  END IF;
   RETURN NEW;
 END;
 $$;
@@ -102,15 +106,18 @@ CREATE TRIGGER recipes_set_owner
   EXECUTE FUNCTION public.set_recipe_owner();
 
 -- Trigger function: Prevent changing created_by on UPDATE (immutable ownership)
+-- Only enforced for JWT clients; service_role can transfer ownership if needed
 CREATE OR REPLACE FUNCTION public.protect_recipe_owner()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public
 AS $$
 BEGIN
-  -- Prevent any change to created_by after insert
-  IF OLD.created_by IS DISTINCT FROM NEW.created_by THEN
+  -- Only enforce immutability for authenticated JWT users
+  -- service_role (auth.uid() IS NULL) can update ownership for admin tasks
+  IF auth.uid() IS NOT NULL
+     AND OLD.created_by IS DISTINCT FROM NEW.created_by THEN
     RAISE EXCEPTION 'Cannot change recipe ownership (created_by is immutable)';
   END IF;
   RETURN NEW;
