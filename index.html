@@ -246,6 +246,19 @@
 
   <div class="toast" id="toast" role="status"></div>
 
+  <!-- Delete Confirmation Modal -->
+  <section class="confirm-modal" id="delete-confirm" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title" hidden>
+    <div class="confirm-backdrop" id="delete-confirm-backdrop"></div>
+    <div class="confirm-box">
+      <h3 id="delete-confirm-title">Delete recipe?</h3>
+      <p id="delete-confirm-msg">This cannot be undone.</p>
+      <div class="confirm-actions">
+        <button type="button" class="btn-ghost-sm" id="delete-confirm-cancel">Cancel</button>
+        <button type="button" class="btn-danger" id="delete-confirm-ok">Delete</button>
+      </div>
+    </div>
+  </section>
+
   <script>
 // ============================================================================
 // CONFIGURATION & CONSTANTS
@@ -1082,18 +1095,22 @@ async function deleteRecipeFromSupabase(recipeId, supabaseId) {
   }
   
   try {
-    const { error } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from('recipes')
       .delete()
-      .eq('id', supabaseId);
+      .eq('id', supabaseId)
+      .select('id');
     
     if (error) throw error;
     
-    await loadRecipesFromSupabase();
-    return { success: true };
+    if (!data || data.length === 0) {
+      return { success: false, error: 'Could not delete (not owner or already gone)' };
+    }
+    
+    return { success: true, deletedId: supabaseId };
   } catch (e) {
     console.error('Delete failed:', e);
-    return { success: false, error: e.message };
+    return { success: false, error: e.message || 'Delete failed' };
   }
 }
 
@@ -1679,17 +1696,49 @@ $("#btn-edit-recipe").addEventListener("click", () => {
   }
 });
 
-$("#btn-delete-recipe").addEventListener("click", async () => {
-  const r = recipes.find(x => x.id === openId);
+let pendingDeleteRecipe = null;
+
+function showDeleteConfirm(recipe) {
+  pendingDeleteRecipe = recipe;
+  const modal = $("#delete-confirm");
+  const title = $("#delete-confirm-title");
+  const msg = $("#delete-confirm-msg");
+  
+  title.textContent = `Delete "${recipe.title}"?`;
+  msg.textContent = "This cannot be undone.";
+  
+  modal.hidden = false;
+  void modal.offsetWidth;
+  modal.classList.add("open");
+  $("#delete-confirm-ok").focus();
+}
+
+function hideDeleteConfirm() {
+  const modal = $("#delete-confirm");
+  modal.classList.remove("open");
+  setTimeout(() => {
+    modal.hidden = true;
+    pendingDeleteRecipe = null;
+  }, 200);
+}
+
+async function executeDelete() {
+  const r = pendingDeleteRecipe;
   if (!r) return;
   
-  if (!confirm(`Delete "${r.title}"? This cannot be undone.`)) return;
+  hideDeleteConfirm();
   
   if (r.supabaseId) {
     const result = await deleteRecipeFromSupabase(r.id, r.supabaseId);
     if (result.success) {
+      baseRecipes = baseRecipes.filter(x => x.supabaseId !== r.supabaseId);
+      recipes = recipes.filter(x => x.id !== r.id);
+      renderFilters();
+      renderGrid();
+      updateStats();
       closeSheets();
       toast(`Deleted "${r.title}"`);
+      loadRecipesFromSupabase();
     } else {
       toast(result.error || "Couldn't delete recipe");
     }
@@ -1703,7 +1752,17 @@ $("#btn-delete-recipe").addEventListener("click", async () => {
     closeSheets();
     toast(`Deleted "${r.title}"`);
   }
+}
+
+$("#btn-delete-recipe").addEventListener("click", () => {
+  const r = recipes.find(x => x.id === openId);
+  if (!r) return;
+  showDeleteConfirm(r);
 });
+
+$("#delete-confirm-cancel").addEventListener("click", hideDeleteConfirm);
+$("#delete-confirm-backdrop").addEventListener("click", hideDeleteConfirm);
+$("#delete-confirm-ok").addEventListener("click", executeDelete);
 
 function saveIngredientEdits() {
   const r = recipes.find(x => x.id === openId);
@@ -1773,6 +1832,11 @@ $("#detail-body").addEventListener("click", e => {
 
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
+  
+  if (pendingDeleteRecipe) {
+    hideDeleteConfirm();
+    return;
+  }
   if (editingIngredients && openId) {
     openDetail(openId, { editing: false });
     return;
