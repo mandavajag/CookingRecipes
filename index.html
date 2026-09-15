@@ -128,7 +128,7 @@
     <div class="sheet-head">
       <div>
         <h2 class="sheet-title" id="editor-title">Add recipe</h2>
-        <p class="sheet-subtitle">Saved on this device — export JSON to back up.</p>
+        <p class="sheet-subtitle" id="editor-subtitle">Saved on this device — export JSON to back up.</p>
       </div>
       <button type="button" class="detail-close static" id="editor-close" aria-label="Close">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -395,7 +395,8 @@ function normalize(r) {
     const m = String(r.time).match(/(\d+)/);
     total = m ? Number(m[1]) : 0;
   }
-  return {
+  
+  const result = {
     id,
     title: r.title || "Untitled",
     cuisine: r.cuisine || "Other",
@@ -412,6 +413,14 @@ function normalize(r) {
     notes: r.notes || "",
     total,
   };
+  
+  // Preserve Supabase metadata when present (critical for edit vs insert)
+  if (r.supabaseId !== undefined) result.supabaseId = r.supabaseId;
+  if (r.source !== undefined) result.source = r.source;
+  if (r.createdBy !== undefined) result.createdBy = r.createdBy;
+  if (r.isOwner !== undefined) result.isOwner = r.isOwner;
+  
+  return result;
 }
 
 function parseIngredientBlock(text) {
@@ -1009,11 +1018,10 @@ function normalizeFromSupabase(r) {
   };
 }
 
-function toSupabaseFormat(r) {
+function toSupabaseFormat(r, options = {}) {
   // Note: created_by is NOT sent - server trigger sets it to auth.uid()
   // This prevents clients from spoofing ownership
-  return {
-    slug: r.id || generateSlug(r.title),
+  const data = {
     title: r.title,
     cuisine: r.cuisine || "Other",
     category: r.category || "",
@@ -1028,6 +1036,14 @@ function toSupabaseFormat(r) {
     video_link: r.videoLink || "",
     description: r.description || "",
   };
+  
+  // Only include slug for INSERT operations (not UPDATE)
+  // This avoids unique constraint issues when updating existing recipes
+  if (!options.omitSlug) {
+    data.slug = r.id || generateSlug(r.title);
+  }
+  
+  return data;
 }
 
 function generateSlug(title) {
@@ -1048,18 +1064,32 @@ async function saveRecipe(recipe) {
     }
     
     try {
-      const data = toSupabaseFormat(recipe);
+      const isUpdate = !!recipe.supabaseId;
       
-      if (recipe.supabaseId) {
-        const { error } = await supabaseClient
+      if (isUpdate) {
+        // UPDATE: omit slug to avoid unique constraint issues
+        const updateData = toSupabaseFormat(recipe, { omitSlug: true });
+        
+        const { data, error } = await supabaseClient
           .from('recipes')
-          .update(data)
-          .eq('id', recipe.supabaseId);
+          .update(updateData)
+          .eq('id', recipe.supabaseId)
+          .select('id');
+        
         if (error) throw error;
+        
+        // Verify the update actually modified a row (RLS may silently block)
+        if (!data || data.length === 0) {
+          toast("Could not update recipe (not owner or doesn't exist)");
+          return { success: false, error: 'no_rows_updated' };
+        }
       } else {
+        // INSERT: include slug for new recipes
+        const insertData = toSupabaseFormat(recipe, { omitSlug: false });
+        
         const { error } = await supabaseClient
           .from('recipes')
-          .insert([data]);
+          .insert([insertData]);
         if (error) throw error;
       }
       
@@ -1072,6 +1102,13 @@ async function saveRecipe(recipe) {
       if (e.message?.includes('permission') || e.code === '42501') {
         toast("You can only edit your own recipes");
         return { success: false, error: 'permission' };
+      }
+      
+      // Unique constraint violation (duplicate slug)
+      if (e.message?.includes('duplicate key') || e.message?.includes('unique constraint') || 
+          e.code === '23505' || e.message?.includes('recipes_slug_key')) {
+        toast("A recipe with this name already exists. Try a different title.");
+        return { success: false, error: 'duplicate_slug' };
       }
       
       // Network or other error - FAIL LOUDLY, no silent fallback
@@ -1590,10 +1627,22 @@ function openEditor(recipeToEdit = null) {
   const form = $("#recipe-form");
   form.reset();
   
+  // Update title and subtitle based on mode
+  const subtitle = $("#editor-subtitle");
+  
   if (recipeToEdit) {
     form.dataset.editId = recipeToEdit.id;
     form.dataset.supabaseId = recipeToEdit.supabaseId || '';
     $("#editor-title").textContent = "Edit recipe";
+    
+    // Set appropriate subtitle for edit mode
+    if (supabaseConfigured && recipeToEdit.supabaseId) {
+      subtitle.textContent = "Changes will be saved to your account.";
+    } else if (recipeToEdit.source === 'local') {
+      subtitle.textContent = "Saved locally — export JSON to back up.";
+    } else {
+      subtitle.textContent = "Editing recipe details.";
+    }
     form.querySelector('[name=title]').value = recipeToEdit.title || '';
     form.querySelector('[name=cuisine]').value = recipeToEdit.cuisine || '';
     form.querySelector('[name=servings]').value = recipeToEdit.servings || '';
@@ -1623,6 +1672,14 @@ function openEditor(recipeToEdit = null) {
     delete form.dataset.editId;
     delete form.dataset.supabaseId;
     $("#editor-title").textContent = "Add recipe";
+    
+    // Set appropriate subtitle for add mode
+    if (supabaseConfigured) {
+      subtitle.textContent = "Recipe will be saved to your account.";
+    } else {
+      subtitle.textContent = "Saved locally — export JSON to back up.";
+    }
+    
     const deleteBtn = $("#btn-delete-recipe");
     if (deleteBtn) deleteBtn.hidden = true;
   }
@@ -1869,12 +1926,18 @@ $("#recipe-form").addEventListener("submit", async e => {
     .map(s => s.trim())
     .filter(Boolean);
 
-  const isEdit = form.dataset.editId;
+  const isEdit = !!form.dataset.editId;
   const existingRecipe = isEdit ? recipes.find(r => r.id === form.dataset.editId) : null;
+  
+  // Get supabaseId - prefer form data, fallback to existing recipe
+  const supabaseId = form.dataset.supabaseId || existingRecipe?.supabaseId || null;
 
   const recipe = normalize({
     id: isEdit ? form.dataset.editId : generateSlug(title),
-    supabaseId: form.dataset.supabaseId || existingRecipe?.supabaseId || null,
+    supabaseId: supabaseId,
+    source: existingRecipe?.source,
+    createdBy: existingRecipe?.createdBy,
+    isOwner: existingRecipe?.isOwner,
     title,
     cuisine: String(fd.get("cuisine") || "Other").trim() || "Other",
     servings: Number(fd.get("servings")) || "",
