@@ -964,6 +964,14 @@ async function loadRecipesFromSupabase(throwOnError = false) {
     return loadFromCacheOrJSON();
   }
   
+  // Debug: simulate offline mode for testing
+  if (isDebugOffline()) {
+    console.log('[Debug] Simulating offline mode');
+    setOfflineMode(true);
+    toast("DEBUG: Simulating offline mode");
+    return loadFromCacheOrJSON();
+  }
+  
   try {
     const { data, error } = await supabaseClient
       .from('recipes')
@@ -2116,11 +2124,21 @@ $("#btn-add-fab").addEventListener("click", () => openEditorWithReset());
 // Offline mode retry button
 $("#retry-connection")?.addEventListener("click", async () => {
   toast("Checking connection...");
+  // Clear debug offline flag on retry
+  if (localStorage.getItem('kitchen.debug.offline')) {
+    localStorage.removeItem('kitchen.debug.offline');
+  }
   await loadRecipesFromSupabase();
   if (!isOfflineMode) {
     toast("Back online!");
   }
 });
+
+// Debug helper: Set localStorage item 'kitchen.debug.offline' to 'true' and reload to simulate offline
+// Usage in console: localStorage.setItem('kitchen.debug.offline', 'true'); location.reload();
+function isDebugOffline() {
+  return localStorage.getItem('kitchen.debug.offline') === 'true';
+}
 
 // Initialize app
 boot();
