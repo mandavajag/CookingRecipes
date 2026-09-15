@@ -44,10 +44,10 @@ const KitchenConfig = (() => {
     DEBUG_MODE: env.DEBUG_MODE || false,
     
     // Data model:
-    // - Supabase is the source of truth for all write operations
-    // - Saves FAIL LOUDLY if Supabase rejects or is unavailable (no silent fallback)
-    // - When offline, shows read-only cached copy of last successful DB fetch
-    // - Cache is stored in localStorage (kitchen.recipes.dbCache) for offline viewing
+    // - Supabase is the ONLY source of truth for all recipe data
+    // - All writes go to Supabase; saves FAIL LOUDLY if unavailable
+    // - No localStorage fallback for recipe data
+    // - On connection failure: shows empty state + error, not cached data
 
     // Check if Supabase is properly configured
     isConfigured() {

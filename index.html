@@ -269,8 +269,6 @@
 // ============================================================================
 // CONFIGURATION & CONSTANTS
 // ============================================================================
-const STORAGE_KEY = "kitchen.recipes.v1"; // Legacy key for old local recipes (deprecated)
-const DB_CACHE_KEY = "kitchen.recipes.dbCache"; // Read-only cache of last successful DB fetch
 const ACCENTS = {
   Street: "#3a5a40",
   Comfort: "#6b5a3a",
@@ -299,7 +297,7 @@ function initSupabase() {
   }
   
   if (!KitchenConfig.isConfigured()) {
-    console.warn('Supabase not configured - using local storage only');
+    console.warn('Supabase not configured');
     return false;
   }
   
@@ -341,28 +339,6 @@ function toast(msg) {
   el.classList.add("show");
   clearTimeout(toast._t);
   toast._t = setTimeout(() => el.classList.remove("show"), 2600);
-}
-
-// ============================================================================
-// DB CACHE - Read-only snapshot of last successful Supabase fetch
-// ============================================================================
-function loadDbCache() {
-  try {
-    const raw = localStorage.getItem(DB_CACHE_KEY);
-    if (!raw) return [];
-    const data = JSON.parse(raw);
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveDbCache(recipes) {
-  try {
-    localStorage.setItem(DB_CACHE_KEY, JSON.stringify(recipes));
-  } catch (e) {
-    console.warn('Could not save DB cache:', e);
-  }
 }
 
 function setOfflineMode(offline) {
@@ -959,17 +935,10 @@ async function handleLogout() {
 // ============================================================================
 async function loadRecipesFromSupabase(throwOnError = false) {
   if (!supabaseConfigured) {
-    // Supabase not configured - load from cache or JSON, stay in offline mode
+    // Supabase not configured - show error, no data
     setOfflineMode(true);
-    return loadFromCacheOrJSON();
-  }
-  
-  // Debug: simulate offline mode for testing
-  if (isDebugOffline()) {
-    console.log('[Debug] Simulating offline mode');
-    setOfflineMode(true);
-    toast("DEBUG: Simulating offline mode");
-    return loadFromCacheOrJSON();
+    showOfflineEmptyState("Supabase not configured");
+    return;
   }
   
   try {
@@ -993,15 +962,12 @@ async function loadRecipesFromSupabase(throwOnError = false) {
     baseRecipes = (data || []).map(normalizeFromSupabase);
     recipes = mergeRecipes(baseRecipes);
     
-    // Sync successful fetch to cache for offline fallback
-    saveDbCache(baseRecipes);
-    
     renderFilters();
     renderGrid();
     updateStats();
     
     if (KitchenConfig.DEBUG_MODE) {
-      console.log(`Loaded ${baseRecipes.length} recipes from Supabase, synced to cache`);
+      console.log(`Loaded ${baseRecipes.length} recipes from Supabase`);
     }
   } catch (e) {
     console.error('Failed to load from Supabase:', e.message || e);
@@ -1010,42 +976,20 @@ async function loadRecipesFromSupabase(throwOnError = false) {
       throw e;
     }
     
-    // Enter offline mode and load from cache
+    // Enter offline mode - show error + empty state
     setOfflineMode(true);
-    toast("Can't reach server — showing last synced recipes (read-only)");
-    loadFromCacheOrJSON();
+    toast("Can't reach server — please check your connection");
+    showOfflineEmptyState("Connection failed");
   }
 }
 
-function loadFromCacheOrJSON() {
-  // Try DB cache first (last successful Supabase fetch)
-  const cached = loadDbCache();
-  if (cached.length > 0) {
-    baseRecipes = cached;
-    recipes = mergeRecipes(baseRecipes);
-    renderFilters();
-    renderGrid();
-    updateStats();
-    console.log(`Loaded ${cached.length} recipes from DB cache`);
-    return;
-  }
-  
-  // Fallback to recipes.json for initial/demo state
-  loadRecipesFromJSON();
-}
-
-async function loadRecipesFromJSON() {
-  try {
-    const res = await fetch("./recipes.json", { cache: "no-store" });
-    if (!res.ok) throw new Error("fetch failed");
-    baseRecipes = await res.json();
-  } catch {
-    baseRecipes = [];
-  }
-  recipes = mergeRecipes(baseRecipes);
+function showOfflineEmptyState(reason) {
+  baseRecipes = [];
+  recipes = [];
   renderFilters();
   renderGrid();
   updateStats();
+  console.warn(`Offline: ${reason} - showing empty state`);
 }
 
 function normalizeFromSupabase(r) {
@@ -1270,7 +1214,7 @@ async function boot() {
       <span class="config-banner-icon">⚠️</span>
       <div class="config-banner-text">
         <strong>Supabase not configured</strong>
-        <p>Edit <code>config.js</code> with your Supabase URL and anon key. See README for setup instructions. Currently using local storage only.</p>
+        <p>Edit <code>config.js</code> with your Supabase URL and anon key. See README for setup instructions.</p>
       </div>
     `;
     wrap.insertBefore(banner, wrap.firstChild);
@@ -1321,15 +1265,18 @@ async function boot() {
     } catch (e) {
       console.error('Boot error:', e);
       const errorMsg = e.message || 'Unknown error';
-      toast(`Connection issue: ${errorMsg}. Showing cached recipes.`);
+      toast(`Connection issue: ${errorMsg}`);
       
-      // Fallback to recipes.json
-      await loadRecipesFromJSON();
+      // Show empty state - Supabase is the only source of truth
+      setOfflineMode(true);
+      showOfflineEmptyState(errorMsg);
       updateAuthUI(null);
     }
   } else {
+    // Supabase not configured - show empty state
     updateAuthUI(null);
-    await loadRecipesFromJSON();
+    setOfflineMode(true);
+    showOfflineEmptyState("Supabase not configured");
   }
   
   // Handle hash-based recipe routing (only for app routes, not auth tokens)
@@ -2124,21 +2071,11 @@ $("#btn-add-fab").addEventListener("click", () => openEditorWithReset());
 // Offline mode retry button
 $("#retry-connection")?.addEventListener("click", async () => {
   toast("Checking connection...");
-  // Clear debug offline flag on retry
-  if (localStorage.getItem('kitchen.debug.offline')) {
-    localStorage.removeItem('kitchen.debug.offline');
-  }
   await loadRecipesFromSupabase();
   if (!isOfflineMode) {
     toast("Back online!");
   }
 });
-
-// Debug helper: Set localStorage item 'kitchen.debug.offline' to 'true' and reload to simulate offline
-// Usage in console: localStorage.setItem('kitchen.debug.offline', 'true'); location.reload();
-function isDebugOffline() {
-  return localStorage.getItem('kitchen.debug.offline') === 'true';
-}
 
 // Initialize app
 boot();
