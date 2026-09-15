@@ -41,24 +41,13 @@ const KitchenConfig = (() => {
     APP_NAME: 'Kitchen',
     
     // Feature flags
-    // 
-    // ENABLE_LOCAL_STORAGE_FALLBACK: Controls local-only mode when Supabase is not configured.
-    // 
-    // When FALSE (default, production):
-    //   - Supabase is REQUIRED for all write operations
-    //   - Saves FAIL LOUDLY if Supabase rejects or is unavailable
-    //   - No silent fallback to localStorage
-    //   - If Supabase isn't configured, editing is disabled entirely
-    //
-    // When TRUE (demo/development only):
-    //   - If Supabase isn't configured, saves go to localStorage
-    //   - Shows "(demo mode)" in toast messages
-    //   - Useful for local development without a Supabase project
-    //
-    // NOTE: This is NOT a network-error fallback. Production saves always
-    // require Supabase to succeed. localStorage is purely for unconfigured demo mode.
-    ENABLE_LOCAL_STORAGE_FALLBACK: env.ENABLE_LOCAL_STORAGE_FALLBACK || false,
     DEBUG_MODE: env.DEBUG_MODE || false,
+    
+    // Data model:
+    // - Supabase is the source of truth for all write operations
+    // - Saves FAIL LOUDLY if Supabase rejects or is unavailable (no silent fallback)
+    // - When offline, shows read-only cached copy of last successful DB fetch
+    // - Cache is stored in localStorage (kitchen.recipes.dbCache) for offline viewing
 
     // Check if Supabase is properly configured
     isConfigured() {

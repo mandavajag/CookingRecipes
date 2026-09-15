@@ -60,7 +60,7 @@
         <div class="stat-divider" aria-hidden="true"></div>
         <div class="stat-item"><strong id="stat-cuisines">0</strong> Cuisines</div>
         <div class="stat-divider" aria-hidden="true"></div>
-        <div class="stat-item"><strong id="stat-local">0</strong> Local</div>
+        <div class="stat-item"><strong id="stat-local">0</strong> Yours</div>
       </div>
     </div>
   </section>
@@ -188,7 +188,6 @@
           <input name="notes" placeholder="Optional tip for future-you">
         </label>
         <div class="form-actions span-2">
-          <button type="button" class="btn-danger" id="btn-reset-local" hidden>Clear local recipes</button>
           <button type="button" class="btn-ghost-sm" id="editor-cancel">Cancel</button>
           <button type="submit" class="btn-solid">Save recipe</button>
         </div>
@@ -246,6 +245,13 @@
 
   <div class="toast" id="toast" role="status"></div>
 
+  <!-- Offline Mode Banner -->
+  <div class="offline-banner" id="offline-banner" role="alert" hidden>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.58 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+    <span>Offline mode — showing last synced recipes (read-only)</span>
+    <button type="button" id="retry-connection" class="retry-btn">Retry</button>
+  </div>
+
   <!-- Delete Confirmation Modal -->
   <section class="confirm-modal" id="delete-confirm" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title" hidden>
     <div class="confirm-backdrop" id="delete-confirm-backdrop"></div>
@@ -263,7 +269,8 @@
 // ============================================================================
 // CONFIGURATION & CONSTANTS
 // ============================================================================
-const STORAGE_KEY = "kitchen.recipes.v1";
+const STORAGE_KEY = "kitchen.recipes.v1"; // Legacy key for old local recipes (deprecated)
+const DB_CACHE_KEY = "kitchen.recipes.dbCache"; // Read-only cache of last successful DB fetch
 const ACCENTS = {
   Street: "#3a5a40",
   Comfort: "#6b5a3a",
@@ -282,6 +289,7 @@ const ACCENTS = {
 let supabaseClient = null;
 let currentUser = null;
 let supabaseConfigured = false;
+let isOfflineMode = false; // True when Supabase is unreachable, editing disabled
 
 function initSupabase() {
   const configAvailable = typeof KitchenConfig !== 'undefined' && KitchenConfig;
@@ -335,9 +343,12 @@ function toast(msg) {
   toast._t = setTimeout(() => el.classList.remove("show"), 2600);
 }
 
-function loadLocal() {
+// ============================================================================
+// DB CACHE - Read-only snapshot of last successful Supabase fetch
+// ============================================================================
+function loadDbCache() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(DB_CACHE_KEY);
     if (!raw) return [];
     const data = JSON.parse(raw);
     return Array.isArray(data) ? data : [];
@@ -346,31 +357,40 @@ function loadLocal() {
   }
 }
 
-function saveLocal(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+function saveDbCache(recipes) {
+  try {
+    localStorage.setItem(DB_CACHE_KEY, JSON.stringify(recipes));
+  } catch (e) {
+    console.warn('Could not save DB cache:', e);
+  }
 }
 
-function mergeRecipes(base, local) {
+function setOfflineMode(offline) {
+  isOfflineMode = offline;
+  document.body.classList.toggle('offline-mode', offline);
+  
+  // Update UI to reflect offline state
+  const offlineBanner = $("#offline-banner");
+  if (offlineBanner) {
+    offlineBanner.hidden = !offline;
+  }
+}
+
+function mergeRecipes(base) {
+  // No longer merge local edits - Supabase is source of truth
+  // base contains either Supabase data or cached data
   const map = new Map();
   for (const r of base) {
     const normalized = normalize(r);
     map.set(String(r.id), { 
       ...normalized, 
-      source: r.source || "file",
+      source: r.source || "supabase",
       supabaseId: r.supabaseId || normalized.supabaseId,
       createdBy: r.createdBy || normalized.createdBy,
       isOwner: r.isOwner ?? normalized.isOwner ?? false,
     });
   }
-  if (KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK) {
-    for (const r of local) map.set(String(r.id), { ...normalize(r), source: "local" });
-  }
   return [...map.values()].sort((a, b) => String(a.title).localeCompare(String(b.title)));
-}
-
-function getLocalRecipes() {
-  // Return empty array if fallback is disabled
-  return KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK ? loadLocal() : [];
 }
 
 function normalize(r) {
@@ -939,7 +959,9 @@ async function handleLogout() {
 // ============================================================================
 async function loadRecipesFromSupabase(throwOnError = false) {
   if (!supabaseConfigured) {
-    return loadRecipesFromJSON();
+    // Supabase not configured - load from cache or JSON, stay in offline mode
+    setOfflineMode(true);
+    return loadFromCacheOrJSON();
   }
   
   try {
@@ -949,7 +971,6 @@ async function loadRecipesFromSupabase(throwOnError = false) {
       .order('created_at', { ascending: false });
     
     if (error) {
-      // Log the actual Supabase error for debugging
       console.error('Supabase query error:', error.message, error.code, error.details);
       throw error;
     }
@@ -958,26 +979,51 @@ async function loadRecipesFromSupabase(throwOnError = false) {
       console.warn('Supabase returned 0 recipes - check RLS policies or seed data');
     }
     
+    // Success! We're online
+    setOfflineMode(false);
+    
     baseRecipes = (data || []).map(normalizeFromSupabase);
-    recipes = mergeRecipes(baseRecipes, loadLocal());
+    recipes = mergeRecipes(baseRecipes);
+    
+    // Sync successful fetch to cache for offline fallback
+    saveDbCache(baseRecipes);
+    
     renderFilters();
     renderGrid();
     updateStats();
     
     if (KitchenConfig.DEBUG_MODE) {
-      console.log(`Loaded ${baseRecipes.length} recipes from Supabase`);
+      console.log(`Loaded ${baseRecipes.length} recipes from Supabase, synced to cache`);
     }
   } catch (e) {
     console.error('Failed to load from Supabase:', e.message || e);
     
     if (throwOnError) {
-      throw e; // Let caller handle fallback
+      throw e;
     }
     
-    // Default behavior: graceful fallback
-    toast("Couldn't connect to server — showing cached data");
-    await loadRecipesFromJSON();
+    // Enter offline mode and load from cache
+    setOfflineMode(true);
+    toast("Can't reach server — showing last synced recipes (read-only)");
+    loadFromCacheOrJSON();
   }
+}
+
+function loadFromCacheOrJSON() {
+  // Try DB cache first (last successful Supabase fetch)
+  const cached = loadDbCache();
+  if (cached.length > 0) {
+    baseRecipes = cached;
+    recipes = mergeRecipes(baseRecipes);
+    renderFilters();
+    renderGrid();
+    updateStats();
+    console.log(`Loaded ${cached.length} recipes from DB cache`);
+    return;
+  }
+  
+  // Fallback to recipes.json for initial/demo state
+  loadRecipesFromJSON();
 }
 
 async function loadRecipesFromJSON() {
@@ -988,7 +1034,7 @@ async function loadRecipesFromJSON() {
   } catch {
     baseRecipes = [];
   }
-  recipes = mergeRecipes(baseRecipes, loadLocal());
+  recipes = mergeRecipes(baseRecipes);
   renderFilters();
   renderGrid();
   updateStats();
@@ -1055,80 +1101,76 @@ function generateSlug(title) {
 }
 
 async function saveRecipe(recipe) {
-  // PRODUCTION PATH: Supabase is configured
-  if (supabaseConfigured) {
-    // Must be logged in to save
-    if (!currentUser) {
-      toast("Sign in to save recipes");
-      return { success: false, error: 'auth_required' };
+  // Block saves in offline mode
+  if (isOfflineMode) {
+    toast("Can't save while offline — please try again when connected");
+    return { success: false, error: 'offline' };
+  }
+  
+  // Supabase not configured = cannot save
+  if (!supabaseConfigured) {
+    toast("Cannot save: server not configured");
+    return { success: false, error: 'not_configured' };
+  }
+  
+  // Must be logged in to save
+  if (!currentUser) {
+    toast("Sign in to save recipes");
+    return { success: false, error: 'auth_required' };
+  }
+  
+  try {
+    const isUpdate = !!recipe.supabaseId;
+    
+    if (isUpdate) {
+      // UPDATE: omit slug to avoid unique constraint issues
+      const updateData = toSupabaseFormat(recipe, { omitSlug: true });
+      
+      const { data, error } = await supabaseClient
+        .from('recipes')
+        .update(updateData)
+        .eq('id', recipe.supabaseId)
+        .select('id');
+      
+      if (error) throw error;
+      
+      // Verify the update actually modified a row (RLS may silently block)
+      if (!data || data.length === 0) {
+        toast("Could not update recipe (not owner or doesn't exist)");
+        return { success: false, error: 'no_rows_updated' };
+      }
+    } else {
+      // INSERT: include slug for new recipes
+      const insertData = toSupabaseFormat(recipe, { omitSlug: false });
+      
+      const { error } = await supabaseClient
+        .from('recipes')
+        .insert([insertData]);
+      if (error) throw error;
     }
     
-    try {
-      const isUpdate = !!recipe.supabaseId;
-      
-      if (isUpdate) {
-        // UPDATE: omit slug to avoid unique constraint issues
-        const updateData = toSupabaseFormat(recipe, { omitSlug: true });
-        
-        const { data, error } = await supabaseClient
-          .from('recipes')
-          .update(updateData)
-          .eq('id', recipe.supabaseId)
-          .select('id');
-        
-        if (error) throw error;
-        
-        // Verify the update actually modified a row (RLS may silently block)
-        if (!data || data.length === 0) {
-          toast("Could not update recipe (not owner or doesn't exist)");
-          return { success: false, error: 'no_rows_updated' };
-        }
-      } else {
-        // INSERT: include slug for new recipes
-        const insertData = toSupabaseFormat(recipe, { omitSlug: false });
-        
-        const { error } = await supabaseClient
-          .from('recipes')
-          .insert([insertData]);
-        if (error) throw error;
-      }
-      
-      await loadRecipesFromSupabase();
-      return { success: true };
-    } catch (e) {
-      console.error('Save to Supabase failed:', e);
-      
-      // Permission denied (RLS)
-      if (e.message?.includes('permission') || e.code === '42501') {
-        toast("You can only edit your own recipes");
-        return { success: false, error: 'permission' };
-      }
-      
-      // Unique constraint violation (duplicate slug)
-      if (e.message?.includes('duplicate key') || e.message?.includes('unique constraint') || 
-          e.code === '23505' || e.message?.includes('recipes_slug_key')) {
-        toast("A recipe with this name already exists. Try a different title.");
-        return { success: false, error: 'duplicate_slug' };
-      }
-      
-      // Network or other error - FAIL LOUDLY, no silent fallback
-      toast("Save failed: " + (e.message || "Server error"));
-      return { success: false, error: e.message || 'server_error' };
+    await loadRecipesFromSupabase();
+    return { success: true };
+  } catch (e) {
+    console.error('Save to Supabase failed:', e);
+    
+    // Permission denied (RLS)
+    if (e.message?.includes('permission') || e.code === '42501') {
+      toast("You can only edit your own recipes");
+      return { success: false, error: 'permission' };
     }
+    
+    // Unique constraint violation (duplicate slug)
+    if (e.message?.includes('duplicate key') || e.message?.includes('unique constraint') || 
+        e.code === '23505' || e.message?.includes('recipes_slug_key')) {
+      toast("A recipe with this name already exists. Try a different title.");
+      return { success: false, error: 'duplicate_slug' };
+    }
+    
+    // Network or other error - FAIL LOUDLY, no silent fallback
+    toast("Save failed: " + (e.message || "Server error"));
+    return { success: false, error: e.message || 'server_error' };
   }
-  
-  // DEMO/DEVELOPMENT PATH: Supabase not configured
-  // Only allow local saves when explicitly in demo mode (no Supabase)
-  // This is NOT a fallback - it's the only path when unconfigured
-  if (KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK) {
-    upsertLocalRecipe(recipe);
-    toast("Saved locally (demo mode - configure Supabase for production)");
-    return { success: true, local: true, demo: true };
-  }
-  
-  // Supabase not configured AND fallback disabled = cannot save
-  toast("Cannot save: Supabase not configured");
-  return { success: false, error: 'not_configured' };
 }
 
 // Legacy alias for compatibility
@@ -1299,12 +1341,11 @@ function handleHashRoute() {
 }
 
 function updateStats() {
-  const localCount = loadLocal().length;
   const cuisines = new Set(recipes.map(r => r.cuisine).filter(Boolean)).size;
+  const ownedCount = recipes.filter(r => r.isOwner).length;
   $("#stat-recipes").textContent = String(recipes.length);
   $("#stat-cuisines").textContent = String(cuisines);
-  $("#stat-local").textContent = String(localCount);
-  $("#btn-reset-local").hidden = localCount === 0;
+  $("#stat-local").textContent = String(ownedCount); // Now shows "Your recipes" count
 }
 
 function renderFilters() {
@@ -1378,19 +1419,6 @@ function cardHTML(r) {
 
 let openId = null;
 let editingIngredients = false;
-
-function upsertLocalRecipe(recipe) {
-  const local = loadLocal();
-  const idx = local.findIndex(x => String(x.id) === String(recipe.id));
-  const { total, ...rest } = normalize(recipe);
-  if (idx >= 0) local[idx] = rest;
-  else local.push(rest);
-  saveLocal(local);
-  recipes = mergeRecipes(baseRecipes, local);
-  renderFilters();
-  renderGrid();
-  updateStats();
-}
 
 function openDetail(id, { editing = false } = {}) {
   const r = recipes.find(x => x.id === id);
@@ -1611,16 +1639,22 @@ function closeSheets() {
 }
 
 function openEditor(recipeToEdit = null) {
-  // Block editing if: Supabase configured but not logged in
-  if (supabaseConfigured && !currentUser) {
+  // Block editing in offline mode
+  if (isOfflineMode) {
+    toast("Can't add or edit recipes while offline");
+    return;
+  }
+  
+  // Block editing if not logged in
+  if (!currentUser) {
     toast("Sign in to add or edit recipes");
     openAuthModal();
     return;
   }
   
-  // Block editing if: Supabase not configured AND fallback disabled
-  if (!supabaseConfigured && !KitchenConfig.ENABLE_LOCAL_STORAGE_FALLBACK) {
-    toast("Cannot edit: Supabase not configured");
+  // Block editing if Supabase not configured
+  if (!supabaseConfigured) {
+    toast("Cannot edit: server not configured");
     return;
   }
   
@@ -1635,14 +1669,8 @@ function openEditor(recipeToEdit = null) {
     form.dataset.supabaseId = recipeToEdit.supabaseId || '';
     $("#editor-title").textContent = "Edit recipe";
     
-    // Set appropriate subtitle for edit mode
-    if (supabaseConfigured && recipeToEdit.supabaseId) {
-      subtitle.textContent = "Changes will be saved to your account.";
-    } else if (recipeToEdit.source === 'local') {
-      subtitle.textContent = "Saved locally — export JSON to back up.";
-    } else {
-      subtitle.textContent = "Editing recipe details.";
-    }
+    // Set subtitle for edit mode
+    subtitle.textContent = "Changes will be saved to your Kitchen account.";
     form.querySelector('[name=title]').value = recipeToEdit.title || '';
     form.querySelector('[name=cuisine]').value = recipeToEdit.cuisine || '';
     form.querySelector('[name=servings]').value = recipeToEdit.servings || '';
@@ -1673,12 +1701,8 @@ function openEditor(recipeToEdit = null) {
     delete form.dataset.supabaseId;
     $("#editor-title").textContent = "Add recipe";
     
-    // Set appropriate subtitle for add mode
-    if (supabaseConfigured) {
-      subtitle.textContent = "Recipe will be saved to your account.";
-    } else {
-      subtitle.textContent = "Saved locally — export JSON to back up.";
-    }
+    // Set subtitle for add mode
+    subtitle.textContent = "Recipe will be saved to your Kitchen account.";
     
     const deleteBtn = $("#btn-delete-recipe");
     if (deleteBtn) deleteBtn.hidden = true;
@@ -1791,31 +1815,32 @@ async function executeDelete() {
   const r = pendingDeleteRecipe;
   if (!r) return;
   
+  // Block if offline
+  if (isOfflineMode) {
+    hideDeleteConfirm();
+    toast("Can't delete while offline");
+    return;
+  }
+  
   hideDeleteConfirm();
   
-  if (r.supabaseId) {
-    const result = await deleteRecipeFromSupabase(r.id, r.supabaseId);
-    if (result.success) {
-      baseRecipes = baseRecipes.filter(x => x.supabaseId !== r.supabaseId);
-      recipes = recipes.filter(x => x.id !== r.id);
-      renderFilters();
-      renderGrid();
-      updateStats();
-      closeSheets();
-      toast(`Deleted "${r.title}"`);
-      loadRecipesFromSupabase();
-    } else {
-      toast(result.error || "Couldn't delete recipe");
-    }
-  } else if (r.source === 'local') {
-    const local = loadLocal().filter(x => x.id !== r.id);
-    saveLocal(local);
-    recipes = mergeRecipes(baseRecipes, local);
+  if (!r.supabaseId) {
+    toast("Can't delete this recipe (not synced)");
+    return;
+  }
+  
+  const result = await deleteRecipeFromSupabase(r.id, r.supabaseId);
+  if (result.success) {
+    baseRecipes = baseRecipes.filter(x => x.supabaseId !== r.supabaseId);
+    recipes = recipes.filter(x => x.id !== r.id);
     renderFilters();
     renderGrid();
     updateStats();
     closeSheets();
     toast(`Deleted "${r.title}"`);
+    loadRecipesFromSupabase();
+  } else {
+    toast(result.error || "Couldn't delete recipe");
   }
 }
 
@@ -1829,17 +1854,29 @@ $("#delete-confirm-cancel").addEventListener("click", hideDeleteConfirm);
 $("#delete-confirm-backdrop").addEventListener("click", hideDeleteConfirm);
 $("#delete-confirm-ok").addEventListener("click", executeDelete);
 
-function saveIngredientEdits() {
+async function saveIngredientEdits() {
   const r = recipes.find(x => x.id === openId);
   if (!r) return;
+  
+  // Block if offline
+  if (isOfflineMode) {
+    toast("Can't save while offline");
+    return;
+  }
+  
   const columns = readEditorColumns();
   if (!columns.length) {
     toast("Add at least one ingredient");
     return;
   }
-  upsertLocalRecipe({ ...r, columns });
-  toast("Ingredients updated");
-  openDetail(openId, { editing: false });
+  
+  // Save to Supabase
+  const result = await saveRecipe({ ...r, columns });
+  if (result.success) {
+    toast("Ingredients updated");
+    openDetail(openId, { editing: false });
+  }
+  // Error toast already shown by saveRecipe
 }
 
 $("#edit-cancel").addEventListener("click", () => {
@@ -1968,16 +2005,6 @@ $("#recipe-form").addEventListener("submit", async e => {
   // Errors are already toasted by saveRecipe - form stays open for retry
 });
 
-$("#btn-reset-local").addEventListener("click", () => {
-  if (!confirm("Clear all recipes you added on this device? recipes.json stays.")) return;
-  localStorage.removeItem(STORAGE_KEY);
-  recipes = mergeRecipes(baseRecipes, []);
-  renderFilters();
-  renderGrid();
-  updateStats();
-  toast("Local recipes cleared");
-});
-
 // Auth modal event listeners
 $("#btn-login")?.addEventListener("click", openAuthModal);
 $("#auth-close").addEventListener("click", closeAuthModal);
@@ -2085,6 +2112,15 @@ $("#hero-add").removeEventListener("click", openEditor);
 $("#hero-add").addEventListener("click", () => openEditorWithReset());
 $("#btn-add-fab").removeEventListener("click", openEditor);
 $("#btn-add-fab").addEventListener("click", () => openEditorWithReset());
+
+// Offline mode retry button
+$("#retry-connection")?.addEventListener("click", async () => {
+  toast("Checking connection...");
+  await loadRecipesFromSupabase();
+  if (!isOfflineMode) {
+    toast("Back online!");
+  }
+});
 
 // Initialize app
 boot();
