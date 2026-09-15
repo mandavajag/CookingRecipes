@@ -1387,6 +1387,64 @@ label.field select:focus {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ── Offline Banner ────────────────────────────────────────── */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #fff;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+}
+
+.offline-banner[hidden] {
+  display: none;
+}
+
+.offline-banner svg {
+  flex-shrink: 0;
+}
+
+.offline-banner .retry-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.offline-banner .retry-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* Shift content down when offline banner is visible */
+body.offline-mode .topbar {
+  top: 40px;
+}
+
+body.offline-mode .fab-bar {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+body.offline-mode .auth-required {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes rise {
   from { opacity: 0; transform: translateY(16px); }
