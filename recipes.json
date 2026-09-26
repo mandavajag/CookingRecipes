@@ -612,5 +612,71 @@
       "Feta, parsley, olive oil. Serve from the pan."
     ],
     "notes": "Pull when whites look barely set — residual heat finishes them."
+  },
+  {
+    "id": "slow-cooker-butter-chicken",
+    "title": "Slow Cooker Butter Chicken (Macro-Friendly)",
+    "cuisine": "Indian",
+    "category": "Chicken",
+    "prepTime": 15,
+    "cookTime": 180,
+    "servings": 7,
+    "difficulty": "Easy",
+    "tags": ["chicken", "butter chicken", "slow cooker", "meal prep", "high protein"],
+    "description": "Set the slow cooker, walk away, and come back to restaurant-style butter chicken. Macro-friendly: 460 calories and 38g protein per rice-bowl serving. Makes 7 meal-prep servings.",
+    "videoLink": "https://www.facebook.com/reel/2249332805850965/",
+    "columns": [
+      {
+        "title": "Sauce Base",
+        "items": [
+          {"qty": "30g", "name": "butter"},
+          {"qty": "2", "name": "onions, chopped"},
+          {"qty": "2 tbsp", "name": "tomato paste"},
+          {"qty": "2 tbsp", "name": "garlic paste"},
+          {"qty": "2 tbsp", "name": "ginger paste"},
+          {"qty": "1 can (14 oz)", "name": "crushed fire roasted tomatoes"},
+          {"qty": "1/2 cup", "name": "water"}
+        ]
+      },
+      {
+        "title": "Spices",
+        "items": [
+          {"qty": "2 tbsp", "name": "paprika"},
+          {"qty": "1 tsp", "name": "cayenne"},
+          {"qty": "2 tbsp", "name": "garam masala"},
+          {"qty": "1 tsp", "name": "cumin"},
+          {"qty": "1 tsp", "name": "coriander"},
+          {"qty": "2 tsp", "name": "salt"},
+          {"qty": "1 dash", "name": "black pepper"}
+        ]
+      },
+      {
+        "title": "Chicken & Finish",
+        "items": [
+          {"qty": "32 oz", "name": "chicken breast, diced"},
+          {"qty": "250g", "name": "plain nonfat greek yogurt or skyr"},
+          {"qty": "30g", "name": "butter (finish)"},
+          {"qty": "1 tbsp", "name": "chicken bouillon (optional, add when blending)"},
+          {"qty": "1 tbsp", "name": "sugar or zero-calorie sweetener (optional, add when blending)"}
+        ]
+      },
+      {
+        "title": "Rice Bowls",
+        "items": [
+          {"qty": "420g", "name": "basmati rice"},
+          {"qty": "~630ml", "name": "water"}
+        ]
+      }
+    ],
+    "steps": [
+      "Melt 30g butter; add chopped onions and cook until caramelized.",
+      "Stir in tomato paste, garlic and ginger pastes, then the full spice blend. Deglaze with the fire roasted tomatoes.",
+      "Blend ~2 minutes until completely smooth (mix in optional bouillon and sweetener here).",
+      "Add diced chicken to the slow cooker and pour over the sauce. Cook High 2-3 hours or Low 3-4 hours.",
+      "Stir in 30g butter, then the greek yogurt. Rest 10-15 minutes so the flavors combine.",
+      "Serve over basmati rice (cook 420g rice in ~630ml water, divide across 7 servings)."
+    ],
+    "notes": "Per rice-bowl serving: 460 cal, 38g protein, 50g carbs, 11g fat. Butter chicken only: 260 cal, 34g protein, 7g carbs, 11g fat."
   }
 ]
+
