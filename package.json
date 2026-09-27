@@ -1,0 +1,15 @@
+{
+  "name": "cooking-recipes",
+  "version": "2.0.0",
+  "description": "Recipe collection app powered by Cloudflare Pages + D1",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev . --d1=DB=cooking_recipes",
+    "deploy": "wrangler pages deploy .",
+    "db:migrate": "wrangler d1 execute cooking_recipes --file=./migrations/0001_schema.sql",
+    "db:seed": "wrangler d1 execute cooking_recipes --file=./migrations/0002_seed_recipes.sql && wrangler d1 execute cooking_recipes --file=./migrations/0003_seed_admin.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

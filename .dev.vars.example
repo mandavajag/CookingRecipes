@@ -1,0 +1,6 @@
+# Copy this file to .dev.vars and set your own values
+# .dev.vars is gitignored and used for local development
+
+# Session signing secret (use at least 32 random characters)
+# Generate with: openssl rand -base64 32
+SESSION_SECRET="change-me-to-a-random-32-character-string"
