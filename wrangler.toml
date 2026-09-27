@@ -1,0 +1,15 @@
+# Cloudflare Pages configuration for Kitchen app
+# D1 database binding for recipe storage
+
+name = "cooking-recipes"
+compatibility_date = "2024-01-01"
+
+# D1 Database binding - accessible as env.DB in Pages Functions
+[[d1_databases]]
+binding = "DB"
+database_name = "cooking_recipes"
+database_id = "6c74ff80-daf7-4766-958a-4977e584ccf0"
+
+# Environment variables (set SESSION_SECRET via Cloudflare dashboard, not here)
+# [vars]
+# SESSION_SECRET = "set-in-dashboard"

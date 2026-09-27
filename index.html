@@ -9,11 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=7">
-  <!-- Supabase Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- App Config -->
-  <script src="./config.js"></script>
+  <link rel="stylesheet" href="./styles.css?v=8">
 </head>
 <body>
   <header class="topbar" id="topbar">
@@ -217,16 +213,10 @@
             <input name="password" type="password" minlength="6" placeholder="At least 6 characters" autocomplete="current-password">
           </label>
           <div class="form-actions">
-            <button type="button" class="btn-ghost-sm" id="auth-toggle">Need an account? Sign up</button>
             <button type="submit" class="btn-solid" id="auth-submit">Sign in</button>
           </div>
         </form>
-        <div class="auth-divider"><span>or</span></div>
-        <button type="button" class="btn-magic-link" id="btn-magic-link">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          Send magic link instead
-        </button>
-        <p class="auth-hint">Magic link sends a sign-in email — no password needed.</p>
+        <p class="auth-hint">Sign in with your admin credentials to manage recipes.</p>
       </div>
       <div id="auth-loading" class="auth-state" hidden>
         <div class="auth-spinner"></div>
@@ -283,47 +273,12 @@ const ACCENTS = {
   Other: "#283618",
 };
 
-// Supabase client initialization
-let supabaseClient = null;
-let currentUser = null;
-let supabaseConfigured = false;
-let isOfflineMode = false; // True when Supabase is unreachable, editing disabled
+// API base URL (relative for Pages Functions)
+const API_BASE = '/api';
 
-function initSupabase() {
-  const configAvailable = typeof KitchenConfig !== 'undefined' && KitchenConfig;
-  if (!window.supabase || !configAvailable) {
-    console.warn('Supabase or config not loaded');
-    return false;
-  }
-  
-  if (!KitchenConfig.isConfigured()) {
-    console.warn('Supabase not configured');
-    return false;
-  }
-  
-  try {
-    supabaseClient = window.supabase.createClient(
-      KitchenConfig.SUPABASE_URL,
-      KitchenConfig.SUPABASE_ANON_KEY,
-      {
-        auth: {
-          // Let supabase-js automatically detect and consume auth tokens from URL hash
-          // This handles magic links, OAuth callbacks, and password recovery
-          detectSessionInUrl: true,
-          // Store session in localStorage for persistence
-          persistSession: true,
-          // Auto-refresh tokens before they expire
-          autoRefreshToken: true,
-        }
-      }
-    );
-    supabaseConfigured = true;
-    return true;
-  } catch (e) {
-    console.error('Failed to initialize Supabase:', e);
-    return false;
-  }
-}
+// Current user state
+let currentUser = null;
+let isOfflineMode = false;
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -345,7 +300,6 @@ function setOfflineMode(offline) {
   isOfflineMode = offline;
   document.body.classList.toggle('offline-mode', offline);
   
-  // Update UI to reflect offline state
   const offlineBanner = $("#offline-banner");
   if (offlineBanner) {
     offlineBanner.hidden = !offline;
@@ -353,27 +307,25 @@ function setOfflineMode(offline) {
 }
 
 function mergeRecipes(base) {
-  // No longer merge local edits - Supabase is source of truth
-  // base contains either Supabase data or cached data
   const map = new Map();
   for (const r of base) {
     const normalized = normalize(r);
     map.set(String(r.id), { 
       ...normalized, 
-      source: r.source || "supabase",
-      supabaseId: r.supabaseId || normalized.supabaseId,
-      createdBy: r.createdBy || normalized.createdBy,
-      isOwner: r.isOwner ?? normalized.isOwner ?? false,
+      source: "d1",
+      dbId: r.id || normalized.id,
+      createdBy: r.created_by || r.createdBy,
+      isOwner: currentUser && (r.created_by === currentUser.id || r.createdBy === currentUser.id),
     });
   }
   return [...map.values()].sort((a, b) => String(a.title).localeCompare(String(b.title)));
 }
 
 function normalize(r) {
-  const id = String(r.id ?? `r-${Date.now()}`);
-  const steps = r.steps || r.instructions || [];
-  let columns = r.columns;
-  if (!columns || !columns.length) {
+  const id = r.slug || String(r.id ?? `r-${Date.now()}`);
+  const steps = Array.isArray(r.steps) ? r.steps : (r.instructions || []);
+  let columns = Array.isArray(r.columns) ? r.columns : [];
+  if (!columns.length) {
     const items = (r.ingredients || []).map(line => {
       if (typeof line === "object") return { qty: line.qty || "", name: line.name || "" };
       if (String(line).includes("|")) {
@@ -384,16 +336,20 @@ function normalize(r) {
     });
     columns = items.length ? [{ title: "Ingredients", items }] : [];
   }
-  const prep = Number(r.prepTime) || 0;
-  const cook = Number(r.cookTime) || 0;
+  const prep = Number(r.prep_time || r.prepTime) || 0;
+  const cook = Number(r.cook_time || r.cookTime) || 0;
   let total = prep + cook;
   if (!total && r.time) {
     const m = String(r.time).match(/(\d+)/);
     total = m ? Number(m[1]) : 0;
   }
   
+  const tags = Array.isArray(r.tags) ? r.tags : [];
+  
   const result = {
     id,
+    slug: r.slug || id,
+    dbId: r.id,
     title: r.title || "Untitled",
     cuisine: r.cuisine || "Other",
     category: r.category || "",
@@ -401,20 +357,16 @@ function normalize(r) {
     cookTime: cook,
     servings: r.servings || "",
     difficulty: r.difficulty || "",
-    tags: r.tags || [],
+    tags,
     description: r.description || "",
-    videoLink: r.videoLink || "",
+    videoLink: r.video_link || r.videoLink || "",
     columns,
     steps,
     notes: r.notes || "",
     total,
+    createdBy: r.created_by || r.createdBy,
+    isOwner: currentUser && (r.created_by === currentUser.id || r.createdBy === currentUser.id),
   };
-  
-  // Preserve Supabase metadata when present (critical for edit vs insert)
-  if (r.supabaseId !== undefined) result.supabaseId = r.supabaseId;
-  if (r.source !== undefined) result.source = r.source;
-  if (r.createdBy !== undefined) result.createdBy = r.createdBy;
-  if (r.isOwner !== undefined) result.isOwner = r.isOwner;
   
   return result;
 }
@@ -759,14 +711,13 @@ function accent(cuisine) {
 // ============================================================================
 // AUTHENTICATION
 // ============================================================================
-let authMode = 'signin'; // 'signin' or 'signup'
 
 async function checkAuth() {
-  if (!supabaseConfigured) return null;
-  
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    return session?.user || null;
+    const res = await fetch(`${API_BASE}/auth/me`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.user || null;
   } catch (e) {
     console.error('Auth check failed:', e);
     return null;
@@ -789,17 +740,23 @@ function updateAuthUI(user) {
       <button type="button" class="btn-logout" id="btn-logout">Sign out</button>
     `;
     $("#btn-logout").addEventListener("click", handleLogout);
+    
+    // Re-render grid to update ownership badges
+    recipes = mergeRecipes(baseRecipes);
+    renderGrid();
   } else {
     document.body.classList.remove('logged-in');
     userArea.innerHTML = `<button type="button" class="nav-link" id="btn-login">Sign in</button>`;
     $("#btn-login").addEventListener("click", openAuthModal);
+    
+    // Re-render grid to update ownership badges
+    recipes = mergeRecipes(baseRecipes);
+    renderGrid();
   }
 }
 
 function openAuthModal() {
   showAuthState('form');
-  authMode = 'signin';
-  updateAuthForm();
   showSheet("auth-modal");
 }
 
@@ -821,63 +778,37 @@ function showAuthState(state) {
   error.hidden = state !== 'error';
 }
 
-function updateAuthForm() {
-  const toggle = $("#auth-toggle");
-  const submit = $("#auth-submit");
-  const passwordField = $("#password-field");
-  
-  if (authMode === 'signin') {
-    toggle.textContent = "Need an account? Sign up";
-    submit.textContent = "Sign in";
-    passwordField.querySelector('input').required = true;
-  } else {
-    toggle.textContent = "Already have an account? Sign in";
-    submit.textContent = "Create account";
-    passwordField.querySelector('input').required = true;
-  }
-}
-
 async function handleAuthSubmit(e) {
   e.preventDefault();
-  if (!supabaseConfigured) {
-    toast("Supabase not configured");
-    return;
-  }
   
   const form = e.target;
   const email = form.email.value.trim();
   const password = form.password.value;
   
-  if (!email) return;
+  if (!email || !password) {
+    toast("Enter email and password");
+    return;
+  }
   
   showAuthState('loading');
   
   try {
-    let result;
-    if (authMode === 'signin') {
-      result = await supabaseClient.auth.signInWithPassword({ email, password });
-    } else {
-      // Include redirect URL for email confirmation link
-      const redirectUrl = window.location.origin + window.location.pathname;
-      result = await supabaseClient.auth.signUp({ 
-        email, 
-        password,
-        options: { emailRedirectTo: redirectUrl }
-      });
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok) {
+      throw new Error(data.error || 'Authentication failed');
     }
     
-    if (result.error) throw result.error;
-    
-    if (authMode === 'signup' && !result.data.session) {
-      // Email confirmation is required - inform user clearly
-      $("#auth-success-msg").textContent = "Check your email to confirm your account! Click the link in the email to complete sign up.";
-      showAuthState('success');
-    } else {
-      updateAuthUI(result.data.user);
-      closeAuthModal();
-      toast(`Welcome${result.data.user?.email ? ', ' + result.data.user.email.split('@')[0] : ''}!`);
-      await loadRecipesFromSupabase();
-    }
+    updateAuthUI(data.user);
+    closeAuthModal();
+    toast(`Welcome${data.user?.email ? ', ' + data.user.email.split('@')[0] : ''}!`);
+    await loadRecipes();
   } catch (err) {
     console.error('Auth error:', err);
     $("#auth-error-msg").textContent = err.message || "Authentication failed";
@@ -885,45 +816,12 @@ async function handleAuthSubmit(e) {
   }
 }
 
-async function handleMagicLink() {
-  if (!supabaseConfigured) {
-    toast("Supabase not configured");
-    return;
-  }
-  
-  const email = $("#auth-form").email.value.trim();
-  if (!email) {
-    toast("Enter your email first");
-    return;
-  }
-  
-  showAuthState('loading');
-  
-  try {
-    const { error } = await supabaseClient.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin + window.location.pathname }
-    });
-    
-    if (error) throw error;
-    
-    $("#auth-success-msg").textContent = "Check your email for the magic link! Click the link to sign in instantly.";
-    showAuthState('success');
-  } catch (err) {
-    console.error('Magic link error:', err);
-    $("#auth-error-msg").textContent = err.message || "Failed to send magic link";
-    showAuthState('error');
-  }
-}
-
 async function handleLogout() {
-  if (!supabaseConfigured) return;
-  
   try {
-    await supabaseClient.auth.signOut();
+    await fetch(`${API_BASE}/auth/logout`, { method: 'POST' });
     updateAuthUI(null);
     toast("Signed out");
-    await loadRecipesFromSupabase();
+    await loadRecipes();
   } catch (err) {
     console.error('Logout error:', err);
     toast("Sign out failed");
@@ -931,52 +829,36 @@ async function handleLogout() {
 }
 
 // ============================================================================
-// DATA LAYER - SUPABASE INTEGRATION
+// DATA LAYER - D1 API INTEGRATION
 // ============================================================================
-async function loadRecipesFromSupabase(throwOnError = false) {
-  if (!supabaseConfigured) {
-    // Supabase not configured - show error, no data
-    setOfflineMode(true);
-    showOfflineEmptyState("Supabase not configured");
-    return;
-  }
-  
+async function loadRecipes(throwOnError = false) {
   try {
-    const { data, error } = await supabaseClient
-      .from('recipes')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const res = await fetch(`${API_BASE}/recipes`);
     
-    if (error) {
-      console.error('Supabase query error:', error.message, error.code, error.details);
-      throw error;
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
     }
     
-    if (!data || data.length === 0) {
-      console.warn('Supabase returned 0 recipes - check RLS policies or seed data');
-    }
+    const data = await res.json();
     
-    // Success! We're online
+    // Success - we're online
     setOfflineMode(false);
     
-    baseRecipes = (data || []).map(normalizeFromSupabase);
+    baseRecipes = data || [];
     recipes = mergeRecipes(baseRecipes);
     
     renderFilters();
     renderGrid();
     updateStats();
     
-    if (KitchenConfig.DEBUG_MODE) {
-      console.log(`Loaded ${baseRecipes.length} recipes from Supabase`);
-    }
+    console.log(`Loaded ${baseRecipes.length} recipes from D1`);
   } catch (e) {
-    console.error('Failed to load from Supabase:', e.message || e);
+    console.error('Failed to load recipes:', e.message || e);
     
     if (throwOnError) {
       throw e;
     }
     
-    // Enter offline mode - show error + empty state
     setOfflineMode(true);
     toast("Can't reach server — please check your connection");
     showOfflineEmptyState("Connection failed");
@@ -992,58 +874,6 @@ function showOfflineEmptyState(reason) {
   console.warn(`Offline: ${reason} - showing empty state`);
 }
 
-function normalizeFromSupabase(r) {
-  return {
-    id: r.slug || r.id,
-    supabaseId: r.id,
-    title: r.title || "Untitled",
-    cuisine: r.cuisine || "Other",
-    category: r.category || "",
-    prepTime: r.prep_time || 0,
-    cookTime: r.cook_time || 0,
-    servings: r.servings || "",
-    difficulty: r.difficulty || "",
-    tags: r.tags || [],
-    description: r.description || "",
-    videoLink: r.video_link || "",
-    columns: r.columns || [],
-    steps: r.steps || [],
-    notes: r.notes || "",
-    total: (r.prep_time || 0) + (r.cook_time || 0),
-    source: "supabase",
-    createdBy: r.created_by,
-    isOwner: currentUser && r.created_by === currentUser.id,
-  };
-}
-
-function toSupabaseFormat(r, options = {}) {
-  // Note: created_by is NOT sent - server trigger sets it to auth.uid()
-  // This prevents clients from spoofing ownership
-  const data = {
-    title: r.title,
-    cuisine: r.cuisine || "Other",
-    category: r.category || "",
-    prep_time: r.prepTime || 0,
-    cook_time: r.cookTime || 0,
-    servings: String(r.servings || ""),
-    difficulty: r.difficulty || "",
-    tags: r.tags || [],
-    columns: r.columns || [],
-    steps: r.steps || [],
-    notes: r.notes || "",
-    video_link: r.videoLink || "",
-    description: r.description || "",
-  };
-  
-  // Only include slug for INSERT operations (not UPDATE)
-  // This avoids unique constraint issues when updating existing recipes
-  if (!options.omitSlug) {
-    data.slug = r.id || generateSlug(r.title);
-  }
-  
-  return data;
-}
-
 function generateSlug(title) {
   return (title || 'recipe')
     .toLowerCase()
@@ -1053,100 +883,93 @@ function generateSlug(title) {
 }
 
 async function saveRecipe(recipe) {
-  // Block saves in offline mode
   if (isOfflineMode) {
     toast("Can't save while offline — please try again when connected");
     return { success: false, error: 'offline' };
   }
   
-  // Supabase not configured = cannot save
-  if (!supabaseConfigured) {
-    toast("Cannot save: server not configured");
-    return { success: false, error: 'not_configured' };
-  }
-  
-  // Must be logged in to save
   if (!currentUser) {
     toast("Sign in to save recipes");
     return { success: false, error: 'auth_required' };
   }
   
   try {
-    const isUpdate = !!recipe.supabaseId;
+    const isUpdate = !!recipe.slug && !!recipe.dbId;
     
+    const payload = {
+      title: recipe.title,
+      cuisine: recipe.cuisine || "Other",
+      category: recipe.category || "",
+      description: recipe.description || "",
+      prep_time: recipe.prepTime || 0,
+      cook_time: recipe.cookTime || 0,
+      servings: String(recipe.servings || ""),
+      difficulty: recipe.difficulty || "",
+      tags: recipe.tags || [],
+      columns: recipe.columns || [],
+      steps: recipe.steps || [],
+      notes: recipe.notes || "",
+      video_link: recipe.videoLink || "",
+    };
+    
+    let res;
     if (isUpdate) {
-      // UPDATE: omit slug to avoid unique constraint issues
-      const updateData = toSupabaseFormat(recipe, { omitSlug: true });
-      
-      const { data, error } = await supabaseClient
-        .from('recipes')
-        .update(updateData)
-        .eq('id', recipe.supabaseId)
-        .select('id');
-      
-      if (error) throw error;
-      
-      // Verify the update actually modified a row (RLS may silently block)
-      if (!data || data.length === 0) {
-        toast("Could not update recipe (not owner or doesn't exist)");
-        return { success: false, error: 'no_rows_updated' };
-      }
+      res = await fetch(`${API_BASE}/recipes/${recipe.slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
     } else {
-      // INSERT: include slug for new recipes
-      const insertData = toSupabaseFormat(recipe, { omitSlug: false });
-      
-      const { error } = await supabaseClient
-        .from('recipes')
-        .insert([insertData]);
-      if (error) throw error;
+      res = await fetch(`${API_BASE}/recipes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
     }
     
-    await loadRecipesFromSupabase();
-    return { success: true };
-  } catch (e) {
-    console.error('Save to Supabase failed:', e);
+    const data = await res.json();
     
-    // Permission denied (RLS)
-    if (e.message?.includes('permission') || e.code === '42501') {
+    if (!res.ok) {
+      throw new Error(data.error || 'Save failed');
+    }
+    
+    await loadRecipes();
+    return { success: true, slug: data.slug };
+  } catch (e) {
+    console.error('Save failed:', e);
+    
+    if (e.message?.includes('own recipes')) {
       toast("You can only edit your own recipes");
       return { success: false, error: 'permission' };
     }
     
-    // Unique constraint violation (duplicate slug)
-    if (e.message?.includes('duplicate key') || e.message?.includes('unique constraint') || 
-        e.code === '23505' || e.message?.includes('recipes_slug_key')) {
+    if (e.message?.includes('already exists')) {
       toast("A recipe with this name already exists. Try a different title.");
       return { success: false, error: 'duplicate_slug' };
     }
     
-    // Network or other error - FAIL LOUDLY, no silent fallback
     toast("Save failed: " + (e.message || "Server error"));
     return { success: false, error: e.message || 'server_error' };
   }
 }
 
-// Legacy alias for compatibility
-const saveRecipeToSupabase = saveRecipe;
-
-async function deleteRecipeFromSupabase(recipeId, supabaseId) {
-  if (!supabaseConfigured || !currentUser || !supabaseId) {
+async function deleteRecipe(slug) {
+  if (!currentUser || !slug) {
     return { success: false, error: 'Not authorized' };
   }
   
   try {
-    const { data, error } = await supabaseClient
-      .from('recipes')
-      .delete()
-      .eq('id', supabaseId)
-      .select('id');
+    const res = await fetch(`${API_BASE}/recipes/${slug}`, {
+      method: 'DELETE'
+    });
     
-    if (error) throw error;
+    const data = await res.json();
     
-    if (!data || data.length === 0) {
-      return { success: false, error: 'Could not delete (not owner or already gone)' };
+    if (!res.ok) {
+      throw new Error(data.error || 'Delete failed');
     }
     
-    return { success: true, deletedId: supabaseId };
+    return { success: true };
   } catch (e) {
     console.error('Delete failed:', e);
     return { success: false, error: e.message || 'Delete failed' };
@@ -1157,7 +980,6 @@ async function deleteRecipeFromSupabase(recipeId, supabaseId) {
 // BOOT
 // ============================================================================
 
-// Timeout wrapper for async operations
 function withTimeout(promise, ms, errorMsg = 'Operation timed out') {
   return Promise.race([
     promise,
@@ -1165,121 +987,28 @@ function withTimeout(promise, ms, errorMsg = 'Operation timed out') {
   ]);
 }
 
-// Check if URL hash contains auth tokens (magic link, OAuth, recovery)
-function hasAuthTokensInHash() {
-  const hash = window.location.hash;
-  if (!hash || hash.length < 2) return false;
-  const params = new URLSearchParams(hash.substring(1));
-  return params.has('access_token') || params.has('refresh_token') || 
-         params.get('type') === 'recovery' || params.get('type') === 'magiclink';
-}
-
-// Clean auth tokens from URL after session is established
-function cleanAuthTokensFromUrl() {
-  if (hasAuthTokensInHash()) {
-    // Preserve any app-level hash routes (like #recipes or #recipe/slug)
-    // Auth tokens have access_token, refresh_token, etc. - we remove those
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.substring(1));
-    
-    // Remove auth-related params
-    ['access_token', 'refresh_token', 'expires_in', 'expires_at', 
-     'token_type', 'type', 'provider_token', 'provider_refresh_token'].forEach(key => {
-      params.delete(key);
-    });
-    
-    // If nothing left, clear the hash; otherwise keep remaining params
-    const remaining = params.toString();
-    const newUrl = remaining 
-      ? window.location.pathname + window.location.search + '#' + remaining
-      : window.location.pathname + window.location.search;
-    
-    history.replaceState(null, '', newUrl);
-  }
-}
-
 async function boot() {
   // Show loading state
   $("#grid").innerHTML = `<div class="grid-loading"><div class="auth-spinner"></div><p>Loading recipes...</p></div>`;
   
-  // Initialize Supabase
-  const configured = initSupabase();
-  
-  // Show config warning if not configured
-  if (!configured) {
-    const wrap = $("main .wrap");
-    const banner = document.createElement('div');
-    banner.className = 'config-banner';
-    banner.innerHTML = `
-      <span class="config-banner-icon">⚠️</span>
-      <div class="config-banner-text">
-        <strong>Supabase not configured</strong>
-        <p>Edit <code>config.js</code> with your Supabase URL and anon key. See README for setup instructions.</p>
-      </div>
-    `;
-    wrap.insertBefore(banner, wrap.firstChild);
-  }
-  
-  if (configured) {
-    // Check if this is an auth callback (magic link, OAuth, recovery)
-    // IMPORTANT: Do NOT clear the hash until AFTER supabase-js has consumed it
-    // supabase.auth.getSession() with detectSessionInUrl: true will process the tokens
-    const isAuthCallback = hasAuthTokensInHash();
+  try {
+    // Check auth first
+    const user = await withTimeout(checkAuth(), 8000, 'Auth check timed out');
+    updateAuthUI(user);
     
-    try {
-      // Auth check with timeout (8 seconds)
-      // This also processes any auth tokens in the URL hash
-      const user = await withTimeout(
-        checkAuth(),
-        8000,
-        'Auth check timed out'
-      );
-      updateAuthUI(user);
-      
-      // NOW it's safe to clean auth tokens from URL (session is established)
-      if (isAuthCallback) {
-        cleanAuthTokensFromUrl();
-        if (user) {
-          toast(`Welcome${user.email ? ', ' + user.email.split('@')[0] : ''}!`);
-        }
-      }
-      
-      // Listen for auth changes (sign in/out from other tabs, token refresh, etc.)
-      supabaseClient.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state change:', event);
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          updateAuthUI(session?.user || null);
-          if (event !== 'TOKEN_REFRESHED') {
-            loadRecipesFromSupabase();
-          }
-        }
-      });
-      
-      // Load recipes with timeout (10 seconds)
-      // Pass throwOnError=true so we can handle fallback here with proper error message
-      await withTimeout(
-        loadRecipesFromSupabase(true),
-        10000,
-        'Recipe loading timed out'
-      );
-    } catch (e) {
-      console.error('Boot error:', e);
-      const errorMsg = e.message || 'Unknown error';
-      toast(`Connection issue: ${errorMsg}`);
-      
-      // Show empty state - Supabase is the only source of truth
-      setOfflineMode(true);
-      showOfflineEmptyState(errorMsg);
-      updateAuthUI(null);
-    }
-  } else {
-    // Supabase not configured - show empty state
-    updateAuthUI(null);
+    // Load recipes
+    await withTimeout(loadRecipes(true), 10000, 'Recipe loading timed out');
+  } catch (e) {
+    console.error('Boot error:', e);
+    const errorMsg = e.message || 'Unknown error';
+    toast(`Connection issue: ${errorMsg}`);
+    
     setOfflineMode(true);
-    showOfflineEmptyState("Supabase not configured");
+    showOfflineEmptyState(errorMsg);
+    updateAuthUI(null);
   }
   
-  // Handle hash-based recipe routing (only for app routes, not auth tokens)
+  // Handle hash-based recipe routing
   handleHashRoute();
   window.addEventListener('hashchange', handleHashRoute);
 }
@@ -1347,9 +1076,6 @@ function cardHTML(r) {
   const mark = (r.cuisine || "K").charAt(0).toUpperCase();
   const tags = (r.tags || []).slice(0, 3).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
   const ownerBadge = r.isOwner ? `<span class="owner-badge">yours</span>` : "";
-  const sourceBadge = r.source === "local" 
-    ? `<span class="tag local-tag">local</span>` 
-    : "";
   return `
     <button type="button" class="recipe" role="listitem" data-id="${escapeAttr(r.id)}" style="--accent:${color}">
       <div class="recipe-img" aria-hidden="true">
@@ -1366,7 +1092,6 @@ function cardHTML(r) {
         <p class="desc">${escapeHtml(r.description || "Open for ingredients & steps.")}</p>
         <div class="recipe-foot">
           ${tags}
-          ${sourceBadge}
         </div>
       </div>
     </button>`;
@@ -1399,9 +1124,9 @@ function openDetail(id, { editing = false } = {}) {
   }
 
   // Show/hide owner-only buttons
-  const canEdit = r.isOwner || (r.source === 'local');
+  const canEdit = r.isOwner;
   $("#btn-edit-recipe").hidden = !canEdit;
-  $("#btn-delete-recipe").hidden = !canEdit || !r.supabaseId;
+  $("#btn-delete-recipe").hidden = !canEdit;
 
   const meta = [];
   if (r.servings) meta.push(metaItem("Servings", String(r.servings)));
@@ -1594,38 +1319,29 @@ function closeSheets() {
 }
 
 function openEditor(recipeToEdit = null) {
-  // Block editing in offline mode
   if (isOfflineMode) {
     toast("Can't add or edit recipes while offline");
     return;
   }
   
-  // Block editing if not logged in
   if (!currentUser) {
     toast("Sign in to add or edit recipes");
     openAuthModal();
     return;
   }
   
-  // Block editing if Supabase not configured
-  if (!supabaseConfigured) {
-    toast("Cannot edit: server not configured");
-    return;
-  }
-  
   const form = $("#recipe-form");
   form.reset();
   
-  // Update title and subtitle based on mode
   const subtitle = $("#editor-subtitle");
   
   if (recipeToEdit) {
     form.dataset.editId = recipeToEdit.id;
-    form.dataset.supabaseId = recipeToEdit.supabaseId || '';
+    form.dataset.slug = recipeToEdit.slug || '';
+    form.dataset.dbId = recipeToEdit.dbId || '';
     $("#editor-title").textContent = "Edit recipe";
-    
-    // Set subtitle for edit mode
     subtitle.textContent = "Changes will be saved to your Kitchen account.";
+    
     form.querySelector('[name=title]').value = recipeToEdit.title || '';
     form.querySelector('[name=cuisine]').value = recipeToEdit.cuisine || '';
     form.querySelector('[name=servings]').value = recipeToEdit.servings || '';
@@ -1635,7 +1351,6 @@ function openEditor(recipeToEdit = null) {
     form.querySelector('[name=description]').value = recipeToEdit.description || '';
     form.querySelector('[name=notes]').value = recipeToEdit.notes || '';
     
-    // Convert columns to text format
     const ingText = (recipeToEdit.columns || []).map(col => {
       const header = col.title !== 'Ingredients' ? `## ${col.title}\n` : '';
       const items = (col.items || []).map(item => 
@@ -1646,17 +1361,15 @@ function openEditor(recipeToEdit = null) {
     form.querySelector('[name=ingredientsText]').value = ingText;
     form.querySelector('[name=stepsText]').value = (recipeToEdit.steps || []).join('\n');
     
-    // Show delete button for owned recipes
     const deleteBtn = $("#btn-delete-recipe");
     if (deleteBtn) {
       deleteBtn.hidden = !recipeToEdit.isOwner;
     }
   } else {
     delete form.dataset.editId;
-    delete form.dataset.supabaseId;
+    delete form.dataset.slug;
+    delete form.dataset.dbId;
     $("#editor-title").textContent = "Add recipe";
-    
-    // Set subtitle for add mode
     subtitle.textContent = "Recipe will be saved to your Kitchen account.";
     
     const deleteBtn = $("#btn-delete-recipe");
@@ -1770,7 +1483,6 @@ async function executeDelete() {
   const r = pendingDeleteRecipe;
   if (!r) return;
   
-  // Block if offline
   if (isOfflineMode) {
     hideDeleteConfirm();
     toast("Can't delete while offline");
@@ -1779,21 +1491,16 @@ async function executeDelete() {
   
   hideDeleteConfirm();
   
-  if (!r.supabaseId) {
-    toast("Can't delete this recipe (not synced)");
-    return;
-  }
-  
-  const result = await deleteRecipeFromSupabase(r.id, r.supabaseId);
+  const result = await deleteRecipe(r.slug || r.id);
   if (result.success) {
-    baseRecipes = baseRecipes.filter(x => x.supabaseId !== r.supabaseId);
+    baseRecipes = baseRecipes.filter(x => x.slug !== r.slug);
     recipes = recipes.filter(x => x.id !== r.id);
     renderFilters();
     renderGrid();
     updateStats();
     closeSheets();
     toast(`Deleted "${r.title}"`);
-    loadRecipesFromSupabase();
+    loadRecipes();
   } else {
     toast(result.error || "Couldn't delete recipe");
   }
@@ -1825,7 +1532,7 @@ async function saveIngredientEdits() {
     return;
   }
   
-  // Save to Supabase
+  // Save to D1
   const result = await saveRecipe({ ...r, columns });
   if (result.success) {
     toast("Ingredients updated");
@@ -1920,14 +1627,11 @@ $("#recipe-form").addEventListener("submit", async e => {
 
   const isEdit = !!form.dataset.editId;
   const existingRecipe = isEdit ? recipes.find(r => r.id === form.dataset.editId) : null;
-  
-  // Get supabaseId - prefer form data, fallback to existing recipe
-  const supabaseId = form.dataset.supabaseId || existingRecipe?.supabaseId || null;
 
   const recipe = normalize({
     id: isEdit ? form.dataset.editId : generateSlug(title),
-    supabaseId: supabaseId,
-    source: existingRecipe?.source,
+    slug: form.dataset.slug || existingRecipe?.slug,
+    dbId: form.dataset.dbId || existingRecipe?.dbId,
     createdBy: existingRecipe?.createdBy,
     isOwner: existingRecipe?.isOwner,
     title,
@@ -1943,32 +1647,22 @@ $("#recipe-form").addEventListener("submit", async e => {
     tags: existingRecipe?.tags || ["new"],
   });
 
-  // Save recipe - will fail loudly if Supabase rejects or user not authenticated
   const result = await saveRecipe(recipe);
   
   if (result.success) {
     closeSheets();
-    // Toast already shown by saveRecipe for demo mode
-    if (!result.demo) {
-      toast(`Saved "${recipe.title}"`);
-    }
+    toast(`Saved "${recipe.title}"`);
     setTimeout(() => {
       const saved = recipes.find(r => r.title === recipe.title) || recipe;
       openDetail(saved.id);
     }, 100);
   }
-  // Errors are already toasted by saveRecipe - form stays open for retry
 });
 
 // Auth modal event listeners
 $("#btn-login")?.addEventListener("click", openAuthModal);
 $("#auth-close").addEventListener("click", closeAuthModal);
 $("#auth-form").addEventListener("submit", handleAuthSubmit);
-$("#auth-toggle").addEventListener("click", () => {
-  authMode = authMode === 'signin' ? 'signup' : 'signin';
-  updateAuthForm();
-});
-$("#btn-magic-link").addEventListener("click", handleMagicLink);
 $("#auth-retry").addEventListener("click", () => showAuthState('form'));
 
 // Login prompt buttons
@@ -2071,7 +1765,7 @@ $("#btn-add-fab").addEventListener("click", () => openEditorWithReset());
 // Offline mode retry button
 $("#retry-connection")?.addEventListener("click", async () => {
   toast("Checking connection...");
-  await loadRecipesFromSupabase();
+  await loadRecipes();
   if (!isOfflineMode) {
     toast("Back online!");
   }
