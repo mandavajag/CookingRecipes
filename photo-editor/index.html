@@ -48,7 +48,9 @@ input[type=range]:disabled{opacity:.35}
 .seg button{background:transparent;min-height:44px;padding:0 12px;border-radius:8px}
 .seg button[aria-pressed=true]{background:#636366;font-weight:600}
 .row.actions{justify-content:space-between}
-.row.actions .primary{flex:1;max-width:220px}
+.row.tools button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px}
+.row.tools svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.row.actions .primary{flex:1;margin-left:8px}
 #msg{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(44,44,46,.95);padding:8px 14px;border-radius:18px;max-width:90%;text-align:center;pointer-events:none;opacity:0;transition:opacity .2s}
 #msg.show{opacity:1}
 @media (min-width:700px){.panel{border-radius:16px 16px 0 0}}
@@ -83,13 +85,17 @@ input[type=range]:disabled{opacity:.35}
       <button type="button" data-p="4:3" aria-pressed="false" disabled>4:3</button>
       <button type="button" data-p="16:9" aria-pressed="false" disabled>16:9</button>
     </div>
+    <div class="row tools">
+      <button id="rot" type="button" aria-label="Rotate 90 degrees left" title="Rotate 90° left" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v5h5"/><path d="M4.6 10A8 8 0 1 1 6 17.5"/></svg><span>Rotate</span></button>
+      <button id="flipH" type="button" aria-label="Mirror horizontal (flip left-right)" title="Mirror horizontal" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6 3 18h6Z"/><path d="M15 6l6 12h-6Z"/><path d="M12 3v18" stroke-dasharray="2 2.5"/></svg><span>Mirror H</span></button>
+      <button id="flipV" type="button" aria-label="Mirror vertical (flip top-bottom)" title="Mirror vertical" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6-6 6 6Z"/><path d="M6 15h12l-6 6Z"/><path d="M3 12h18" stroke-dasharray="2 2.5"/></svg><span>Mirror V</span></button>
+    </div>
     <div class="row actions">
-      <button id="rot" type="button" aria-label="Rotate 90 degrees" disabled>⟲ 90°</button>
       <div class="seg" role="group" aria-label="File format">
         <button type="button" data-f="jpeg" aria-pressed="true">JPEG</button>
         <button type="button" data-f="png" aria-pressed="false">PNG</button>
       </div>
-      <button id="save" class="primary" type="button" disabled>Save</button>
+      <button id="download" class="primary" type="button" disabled>Download</button>
     </div>
   </div>
 </div>
@@ -103,12 +109,13 @@ const slider = $('angle'), angleOut = $('angleOut'), info = $('info');
 const PREVIEW_MAX = 2048;   // working copy size for on-screen editing
 const MIN_BOX = 48;         // smallest crop box on screen, px
 let img = null;             // {src (full-res), prev (preview), w0, h0, name}
-const st = { r: 0, a: 0, preset: 'free', crop: null, want: null }; // r: 90deg steps (cw), a: straighten deg
+const st = { m: [1, 0, 0, 1], a: 0, preset: 'free', crop: null, want: null }; // m: rotate/flip matrix [a,b,c,d] on screen, a: straighten deg
+const mul = (L, T) => [L[0]*T[0] + L[1]*T[2], L[0]*T[1] + L[1]*T[3], L[2]*T[0] + L[3]*T[2], L[2]*T[1] + L[3]*T[3]];
 const view = { w: 0, h: 0, dpr: 1, vs: 1, cx: 0, cy: 0 };
 let fmt = 'jpeg', grid = 0, drag = null, sliding = false, gridTimer = 0, msgTimer = 0, raf = 0;
 
 /* ---------- geometry (frame coords: origin = image centre, units = full-res px) ---------- */
-const dims = () => (st.r & 1) ? { W: img.h0, H: img.w0 } : { W: img.w0, H: img.h0 };
+const dims = () => (st.m[0] === 0) ? { W: img.h0, H: img.w0 } : { W: img.w0, H: img.h0 };
 const rad = d => d * Math.PI / 180;
 function fits(rc) {
   const { W, H } = dims(), a = Math.abs(st.a) < 0.01 ? 0 : st.a;
@@ -187,7 +194,8 @@ function draw() {
   ctx.save();
   ctx.translate(view.cx, view.cy);
   ctx.beginPath(); ctx.rect(-W / 2 * vs, -H / 2 * vs, W * vs, H * vs); ctx.clip();
-  ctx.rotate(rad(st.r * 90 + st.a));
+  ctx.rotate(rad(st.a));
+  ctx.transform(st.m[0], st.m[2], st.m[1], st.m[3], 0, 0);
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img.prev, -img.w0 / 2 * vs, -img.h0 / 2 * vs, img.w0 * vs, img.h0 * vs);
   ctx.restore();
@@ -303,7 +311,7 @@ function updateInfo() {
   info.textContent = img ? `${Math.round(st.crop.r - st.crop.l)} × ${Math.round(st.crop.b - st.crop.t)}` : 'Photo Edit';
 }
 function setEnabled(on) {
-  document.querySelectorAll('#reset,#angle,#chips button,#rot,#save').forEach(el => el.disabled = !on);
+  document.querySelectorAll('#reset,#angle,#chips button,#rot,#flipH,#flipV,#download').forEach(el => el.disabled = !on);
 }
 function say(t, ms = 3500) {
   const m = $('msg'); m.textContent = t; m.classList.add('show');
@@ -332,11 +340,22 @@ $('chips').addEventListener('click', e => {
 });
 $('rot').addEventListener('click', () => {
   if (!img) return;
-  st.r = (st.r + 3) % 4; // counter-clockwise, like the Photos app
+  st.m = mul([0, 1, -1, 0], st.m); // 90° counter-clockwise on screen, like the Photos app
   applyPreset(st.preset, true); fitView(); updateInfo();
 });
+function mirror(axis) {
+  if (!img) return;
+  st.m = mul(axis === 'h' ? [-1, 0, 0, 1] : [1, 0, 0, -1], st.m);
+  const f = q => axis === 'h' ? { l: -q.r, t: q.t, r: -q.l, b: q.b } : { l: q.l, t: -q.b, r: q.r, b: -q.t };
+  st.a = st.a ? -st.a : 0; // a mirrored picture tilts the other way
+  slider.value = st.a; angleOut.textContent = st.a.toFixed(1) + '°';
+  st.want = f(st.want); st.crop = shrink(f(st.crop));
+  updateInfo(); schedule();
+}
+$('flipH').addEventListener('click', () => mirror('h'));
+$('flipV').addEventListener('click', () => mirror('v'));
 function reset() {
-  st.r = 0; st.a = 0; slider.value = 0; angleOut.textContent = '0.0°';
+  st.m = [1, 0, 0, 1]; st.a = 0; slider.value = 0; angleOut.textContent = '0.0°';
   applyPreset('free', true); fitView(); updateInfo();
 }
 $('reset').addEventListener('click', () => img && reset());
@@ -406,7 +425,8 @@ async function render(k, ow, oh) {
   x.imageSmoothingQuality = 'high';
   x.scale(c.width / ow, c.height / oh);
   x.translate(ow / 2 - (q.l + q.r) / 2, oh / 2 - (q.t + q.b) / 2);
-  x.rotate(rad(st.r * 90 + st.a));
+  x.rotate(rad(st.a));
+  x.transform(st.m[0], st.m[2], st.m[1], st.m[3], 0, 0);
   x.drawImage(img.src, -img.w0 / 2, -img.h0 / 2);
   x.setTransform(1, 0, 0, 1, 0, 0);
   if (x.getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3] === 0) return null; // browser refused the canvas size
@@ -414,9 +434,9 @@ async function render(k, ow, oh) {
   return c;
 }
 const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-async function save() {
+async function download() {
   if (!img) return;
-  const btn = $('save'); btn.disabled = true; say('Saving…', 0);
+  const btn = $('download'); btn.disabled = true; say('Preparing download…', 0);
   try {
     const ow = st.crop.r - st.crop.l, oh = st.crop.b - st.crop.t;
     let k = Math.min(1, Math.sqrt(120e6 / (ow * oh)), 16384 / Math.max(ow, oh)), canvas = null;
@@ -431,22 +451,22 @@ async function save() {
     const note = `${canvas.width} × ${canvas.height}` + (canvas.width < Math.round(ow) - 1 ? ' (reduced: browser size limit)' : '');
     const file = new File([blob], name, { type: mime });
     if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file] }); say('Saved ' + note); return; }
+      try { await navigator.share({ files: [file] }); say('Downloaded ' + note); return; }
       catch (e) { if (e && e.name === 'AbortError') { say('', 1); return; } /* otherwise fall back to a download */ }
     }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 20000);
-    say('Saved ' + note);
+    say('Downloaded ' + note);
   } catch (_) {
     say('Could not export this photo. Try a smaller crop or JPEG.');
   } finally { btn.disabled = false; }
 }
-$('save').addEventListener('click', save);
+$('download').addEventListener('click', download);
 
 /* test hook (read-only helpers used by automated checks) */
-window.__photoEdit = { state: () => ({ r: st.r, a: st.a, preset: st.preset, crop: st.crop && { ...st.crop }, w0: img && img.w0, h0: img && img.h0 }) };
+window.__photoEdit = { state: () => ({ m: [...st.m], a: st.a, preset: st.preset, crop: st.crop && { ...st.crop }, w0: img && img.w0, h0: img && img.h0 }) };
 
 layout();
 })();
