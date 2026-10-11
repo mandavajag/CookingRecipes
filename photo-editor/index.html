@@ -14,6 +14,10 @@ html,body{margin:0;height:100%;background:#000;color:#f2f2f7;font:15px/1.3 -appl
 button{font:inherit;color:inherit;background:#2c2c2e;border:0;border-radius:10px;min-height:44px;min-width:44px;padding:0 16px;cursor:pointer;touch-action:manipulation}
 button:hover:not(:disabled){background:#3a3a3c}
 button:disabled{opacity:.35;cursor:default}
+button.off{opacity:.45}
+#dbg{position:fixed;left:6px;right:6px;top:56px;z-index:30;background:rgba(0,0,0,.88);border:1px solid #48484a;border-radius:10px;padding:6px;font:11px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#c7f9cc}
+#dbg pre{margin:6px 0 0;white-space:pre-wrap;word-break:break-all;max-height:34vh;overflow:auto}
+#dbg button{font-size:13px;margin-right:6px}
 button:focus-visible,input:focus-visible+span,input[type=range]:focus-visible{outline:2px solid #ffd60a;outline-offset:2px}
 button.primary{background:#ffd60a;color:#000;font-weight:600}
 button.primary:hover:not(:disabled){background:#ffe14d}
@@ -65,7 +69,7 @@ input[type=range]:disabled{opacity:.35}
 <div id="app">
   <div class="bar">
     <button id="open" class="ghost" type="button">Open</button>
-    <button id="paste" class="ghost" type="button" title="Paste image from clipboard (or press Cmd/Ctrl+V)">Paste</button>
+    <button id="paste" class="ghost" type="button" title="Paste image from clipboard">Paste</button>
     <div class="info" id="info">Photo Edit</div>
     <button id="reset" class="ghost" type="button" disabled>Reset</button>
   </div>
@@ -74,6 +78,7 @@ input[type=range]:disabled{opacity:.35}
     <div id="empty">
       <h1>Crop and straighten</h1>
       <p>Pick a photo to edit. It stays on this device and is never uploaded.</p>
+      <p>You can also press <b id="pk">Ctrl+V</b> to paste a photo.</p>
       <button id="open2" class="primary" type="button">Choose photo</button>
     </div>
     <div id="msg" role="status" aria-live="polite"></div>
@@ -427,23 +432,57 @@ const emptyEl = $('empty');
 document.addEventListener('drop', e => load(e.dataTransfer.files[0]));
 
 /* ---------- paste ----------
-   Paste is enabled unless we have POSITIVELY seen a readable clipboard with no image on it.
-   Unknown states (no permission yet, Safari/Firefox, empty or unreadable clipboard, copied files) stay enabled. */
+   The Paste button is never truly disabled. It is dimmed only after a readable clipboard was seen to hold no image;
+   in every unknown state (no permission, blocked, Safari/Firefox, empty or unreadable clipboard, copied files) it stays normal.
+   Cmd/Ctrl+V always works, wherever focus is. Add ?debug=1 to the URL to see what the clipboard exposes. */
+const plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '';
+const PASTE_KEY = /mac|iphone|ipad|ipod/i.test(plat) ? 'Cmd+V' : 'Ctrl+V';
 const pasteBtn = $('paste');
-const T_OK = 'Paste image from clipboard (or press Cmd/Ctrl+V)';
-const T_NONE = 'Clipboard has no image. Copy an image first.';
-const HINT = 'Press Cmd/Ctrl+V to paste the image or file you copied';
+const T_OK = `Paste image from clipboard (or press ${PASTE_KEY})`;
+const T_NONE = `Clipboard has no image. Copy an image first, then click here or press ${PASTE_KEY}.`;
+const HINT = `Press ${PASTE_KEY} to paste the image or file you copied`;
 const IMG_EXT = /\.(png|jpe?g|gif|webp|avif|bmp|tiff?|heic|heif)$/i;
 const isImageFile = f => !!f && (/^image\//.test(f.type) || (!f.type && IMG_EXT.test(f.name || '')));
-const setPaste = (on, why) => { pasteBtn.disabled = !on; pasteBtn.title = on ? T_OK : why; };
+const setPaste = (on, why) => {
+  pasteBtn.setAttribute('aria-disabled', String(!on)); pasteBtn.classList.toggle('off', !on); pasteBtn.title = on ? T_OK : why;
+};
+const pk = $('pk'); if (pk) pk.textContent = PASTE_KEY;
+
+/* debug panel (?debug=1) */
+const DEBUG = /[?&]debug=1(&|$)/.test(location.search), dlines = [];
+let dpre = null;
+function dlog(m) { if (!DEBUG) return; dlines.push(new Date().toLocaleTimeString() + ' ' + m); if (dlines.length > 60) dlines.shift(); dpre.textContent = dlines.join('\n'); dpre.scrollTop = 1e9; }
+async function describe(items) {
+  if (!items.length) return 'read() returned 0 items';
+  const out = [];
+  for (const it of items) {
+    const parts = [];
+    for (const t of it.types) {
+      let extra = '';
+      try { if (t === 'text/plain' || t === 'text/html') { const x = await (await it.getType(t)).text(); extra = ` (${x.length} chars: ${JSON.stringify(x.slice(0, 60))})`; } else { extra = ` (${(await it.getType(t)).size} bytes)`; } } catch (e) { extra = ' (unreadable)'; }
+      parts.push(t + extra);
+    }
+    out.push('[' + parts.join(', ') + ']');
+  }
+  return 'read() items: ' + out.join(' ');
+}
+if (DEBUG) {
+  const d = document.createElement('div'); d.id = 'dbg';
+  d.innerHTML = '<div><button type="button" id="dbgRead">Read clipboard</button><button type="button" id="dbgClear">Clear</button></div><pre></pre>';
+  document.body.appendChild(d); dpre = d.querySelector('pre');
+  d.querySelector('#dbgRead').onclick = async () => { try { dlog(await describe(await navigator.clipboard.read())); } catch (e) { dlog('read() failed: ' + e.name + ': ' + e.message); } };
+  d.querySelector('#dbgClear').onclick = () => { dlines.length = 0; dpre.textContent = ''; };
+  dlog(`platform="${plat}" key=${PASTE_KEY} secure=${window.isSecureContext} clipboard.read=${!!(navigator.clipboard && navigator.clipboard.read)} permissions=${!!(navigator.permissions && navigator.permissions.query)}`);
+}
+
 const looksLikeFile = t => t.split(/\r?\n/).some(l => /^\s*(file:\/\/|\/|~\/|[A-Za-z]:\\)/.test(l) || IMG_EXT.test(l.trim()));
 async function clipboardHasPasteable(items) { // false only when sure there is nothing to paste
-  if (!items.length) return true; // empty or unreadable formats (e.g. Finder files): unknown
+  if (!items.length) return true; // empty or unreadable formats (copied files often look like this): unknown
   for (const it of items) {
     if (it.types.some(t => t.startsWith('image/'))) return true;
     if (it.types.some(t => t !== 'text/plain' && t !== 'text/html')) return true; // file-like or unknown format
     if (it.types.includes('text/html') && /<img\b/i.test(await (await it.getType('text/html')).text())) return true;
-    if (it.types.includes('text/plain') && looksLikeFile(await (await it.getType('text/plain')).text())) return true; // a copied file's name
+    if (it.types.includes('text/plain') && looksLikeFile(await (await it.getType('text/plain')).text())) return true; // a copied file's path or name
   }
   return false;
 }
@@ -452,20 +491,34 @@ async function refreshPaste() { // passive check; only reads when permission is 
   if (checking) return;
   checking = true;
   try {
-    if (!(navigator.clipboard && navigator.clipboard.read && navigator.permissions && navigator.permissions.query)) return;
+    if (!(navigator.clipboard && navigator.clipboard.read && navigator.permissions && navigator.permissions.query)) { setPaste(true); dlog('check: API unavailable -> enabled'); return; }
     let perm;
-    try { perm = await navigator.permissions.query({ name: 'clipboard-read' }); } catch (_) { return; } // Safari/Firefox
+    try { perm = await navigator.permissions.query({ name: 'clipboard-read' }); } catch (e) { setPaste(true); dlog('check: permissions.query failed (' + e.name + ') -> enabled'); return; } // Safari/Firefox
     if (!permStatus) { permStatus = perm; perm.onchange = () => refreshPaste(); }
-    if (perm.state !== 'granted') { setPaste(true); return; }
-    let ok;
-    try { ok = await clipboardHasPasteable(await navigator.clipboard.read()); } catch (_) { return; } // e.g. window not focused: leave as is
+    if (perm.state !== 'granted') { setPaste(true); dlog('check: permission=' + perm.state + ' -> enabled (cannot look)'); return; }
+    let items;
+    try { items = await navigator.clipboard.read(); }
+    catch (e) { setPaste(true); dlog('check: read() failed: ' + e.name + ': ' + e.message + ' -> enabled'); return; } // never latch on an error
+    const ok = await clipboardHasPasteable(items);
     setPaste(ok, T_NONE);
-  } finally { checking = false; }
+    if (DEBUG) dlog('check: ' + await describe(items) + ' -> ' + (ok ? 'enabled' : 'dimmed (no image)'));
+  } catch (e) { setPaste(true); dlog('check error: ' + e); }
+  finally { checking = false; }
 }
-function pasteHint() { say(HINT, 6000); pasteBtn.blur(); window.focus(); }
+let handled = 0, pasteTargetEl = null;
+function pasteTarget() {
+  if (!pasteTargetEl) {
+    pasteTargetEl = document.createElement('div'); pasteTargetEl.contentEditable = 'true'; pasteTargetEl.setAttribute('aria-hidden', 'true');
+    pasteTargetEl.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0;overflow:hidden';
+    document.body.appendChild(pasteTargetEl);
+  }
+  return pasteTargetEl;
+}
 async function pasteFromButton() {
+  dlog('Paste clicked');
   let items = null;
-  try { if (navigator.clipboard && navigator.clipboard.read) items = await navigator.clipboard.read(); } catch (_) { /* denied or unavailable */ }
+  try { if (navigator.clipboard && navigator.clipboard.read) { items = await navigator.clipboard.read(); if (DEBUG) dlog(await describe(items)); } }
+  catch (e) { dlog('read() failed: ' + e.name + ': ' + e.message); } // denied or unavailable
   if (items) {
     for (const it of items) {
       const type = it.types.find(t => t.startsWith('image/'));
@@ -473,19 +526,37 @@ async function pasteFromButton() {
       try { const blob = await it.getType(type); return load(new File([blob], 'pasted-image.' + (type.split('/')[1] || 'png'), { type })); } catch (_) { /* try next */ }
     }
   }
-  pasteHint();
+  // nothing loadable: try a scripted paste (browsers usually refuse it; harmless), then tell the user what works
+  const before = handled;
+  if (!matchMedia('(pointer: coarse)').matches) {
+    try { pasteTarget().focus(); dlog('execCommand(paste) -> ' + document.execCommand('paste')); } catch (e) { dlog('execCommand(paste) threw ' + e.name); }
+  }
+  if (pasteTargetEl) pasteTargetEl.blur();
+  if (handled === before) { say(HINT, 6000); pasteBtn.blur(); window.focus(); }
 }
 pasteBtn.addEventListener('click', pasteFromButton);
-document.addEventListener('paste', e => { // Cmd/Ctrl+V (also delivers files copied in Finder/Explorer)
-  const cd = e.clipboardData; if (!cd) return;
+const seen = new WeakSet();
+function onPaste(e) { // Cmd/Ctrl+V, wherever focus is (also delivers files copied in Finder/Explorer)
+  if (seen.has(e)) return; seen.add(e);
+  const cd = e.clipboardData;
+  if (DEBUG) dlog(`paste event on <${(e.target && e.target.tagName || '?').toLowerCase()}>: ` + (cd
+    ? `types=[${[...(cd.types || [])]}] files=[${[...(cd.files || [])].map(f => `${f.name}|${f.type}|${f.size}`)}] items=[${[...(cd.items || [])].map(i => i.kind + ':' + i.type)}]`
+    : 'no clipboardData'));
+  if (!cd) return;
   let f = [...(cd.files || [])].find(isImageFile);
   if (!f) { const it = [...(cd.items || [])].find(x => x.kind === 'file' && (/^image\//.test(x.type) || !x.type)); const g = it && it.getAsFile(); if (isImageFile(g)) f = g; }
-  if (!f) return; // nothing we can use: do nothing
-  e.preventDefault();
+  if (!f) { dlog('paste: no image file found, ignored'); return; } // nothing we can use: do nothing
+  e.preventDefault(); handled++;
+  dlog(`paste: loading ${f.name || '(unnamed)'} ${f.type}`);
   load(f.name ? f : new File([f], 'pasted-image.' + ((f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')), { type: f.type }));
-});
+}
+window.addEventListener('paste', onPaste, true);
+document.addEventListener('paste', onPaste, true);
 window.addEventListener('focus', () => refreshPaste());
+window.addEventListener('pageshow', () => refreshPaste());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshPaste(); });
+document.addEventListener('pointerdown', e => { if (e.target !== cv) refreshPaste(); }, true);
+setPaste(true);
 refreshPaste();
 
 /* ---------- export (full resolution) ---------- */
