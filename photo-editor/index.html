@@ -65,7 +65,7 @@ input[type=range]:disabled{opacity:.35}
 <div id="app">
   <div class="bar">
     <button id="open" class="ghost" type="button">Open</button>
-    <button id="paste" class="ghost" type="button" disabled title="Checking clipboard…">Paste</button>
+    <button id="paste" class="ghost" type="button" title="Paste image from clipboard (or press Cmd/Ctrl+V)">Paste</button>
     <div class="info" id="info">Photo Edit</div>
     <button id="reset" class="ghost" type="button" disabled>Reset</button>
   </div>
@@ -426,58 +426,67 @@ const emptyEl = $('empty');
 ['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); emptyEl.classList.remove('over'); }));
 document.addEventListener('drop', e => load(e.dataTransfer.files[0]));
 
-/* ---------- paste (Cmd/Ctrl+V always works; the Paste button only enables when the clipboard has an image) ---------- */
+/* ---------- paste ----------
+   Paste is enabled unless we have POSITIVELY seen a readable clipboard with no image on it.
+   Unknown states (no permission yet, Safari/Firefox, empty or unreadable clipboard, copied files) stay enabled. */
 const pasteBtn = $('paste');
-const T_NONE = 'Copy an image first';
-const T_KEYS = 'This browser cannot preview the clipboard. Press Cmd/Ctrl+V to paste an image.';
-const T_DENIED = 'Clipboard access is blocked. Press Cmd/Ctrl+V to paste an image.';
-const T_PROMPT = 'Copy an image first, or press Cmd/Ctrl+V';
-const setPaste = (on, why) => { pasteBtn.disabled = !on; pasteBtn.title = on ? 'Paste image from clipboard' : why; };
-let permStatus = null, asked = false, checking = false;
-async function refreshPaste(gesture) {
+const T_OK = 'Paste image from clipboard (or press Cmd/Ctrl+V)';
+const T_NONE = 'Clipboard has no image. Copy an image first.';
+const HINT = 'Press Cmd/Ctrl+V to paste the image or file you copied';
+const IMG_EXT = /\.(png|jpe?g|gif|webp|avif|bmp|tiff?|heic|heif)$/i;
+const isImageFile = f => !!f && (/^image\//.test(f.type) || (!f.type && IMG_EXT.test(f.name || '')));
+const setPaste = (on, why) => { pasteBtn.disabled = !on; pasteBtn.title = on ? T_OK : why; };
+const looksLikeFile = t => t.split(/\r?\n/).some(l => /^\s*(file:\/\/|\/|~\/|[A-Za-z]:\\)/.test(l) || IMG_EXT.test(l.trim()));
+async function clipboardHasPasteable(items) { // false only when sure there is nothing to paste
+  if (!items.length) return true; // empty or unreadable formats (e.g. Finder files): unknown
+  for (const it of items) {
+    if (it.types.some(t => t.startsWith('image/'))) return true;
+    if (it.types.some(t => t !== 'text/plain' && t !== 'text/html')) return true; // file-like or unknown format
+    if (it.types.includes('text/html') && /<img\b/i.test(await (await it.getType('text/html')).text())) return true;
+    if (it.types.includes('text/plain') && looksLikeFile(await (await it.getType('text/plain')).text())) return true; // a copied file's name
+  }
+  return false;
+}
+let permStatus = null, checking = false;
+async function refreshPaste() { // passive check; only reads when permission is already granted, so it never prompts
   if (checking) return;
   checking = true;
   try {
-    if (!(navigator.clipboard && navigator.clipboard.read && navigator.permissions && navigator.permissions.query)) return setPaste(false, T_KEYS);
+    if (!(navigator.clipboard && navigator.clipboard.read && navigator.permissions && navigator.permissions.query)) return;
     let perm;
-    try { perm = await navigator.permissions.query({ name: 'clipboard-read' }); }
-    catch (_) { return setPaste(false, T_KEYS); } // Safari/Firefox: cannot check without a prompt
-    if (!permStatus) { permStatus = perm; perm.onchange = () => refreshPaste(false); }
-    if (perm.state === 'denied') return setPaste(false, T_DENIED);
-    if (perm.state === 'prompt') { // never prompt on load/focus; ask at most once, on the user's first gesture
-      if (!gesture || asked) return setPaste(false, T_PROMPT);
-      asked = true;
-    }
-    try {
-      const items = await navigator.clipboard.read();
-      const has = items.some(i => i.types.some(t => t.startsWith('image/')));
-      setPaste(has, T_NONE);
-    } catch (_) { setPaste(false, perm.state === 'granted' ? T_NONE : T_DENIED); } // e.g. window not focused, or prompt dismissed
+    try { perm = await navigator.permissions.query({ name: 'clipboard-read' }); } catch (_) { return; } // Safari/Firefox
+    if (!permStatus) { permStatus = perm; perm.onchange = () => refreshPaste(); }
+    if (perm.state !== 'granted') { setPaste(true); return; }
+    let ok;
+    try { ok = await clipboardHasPasteable(await navigator.clipboard.read()); } catch (_) { return; } // e.g. window not focused: leave as is
+    setPaste(ok, T_NONE);
   } finally { checking = false; }
 }
+function pasteHint() { say(HINT, 6000); pasteBtn.blur(); window.focus(); }
 async function pasteFromButton() {
-  try {
-    const items = await navigator.clipboard.read();
+  let items = null;
+  try { if (navigator.clipboard && navigator.clipboard.read) items = await navigator.clipboard.read(); } catch (_) { /* denied or unavailable */ }
+  if (items) {
     for (const it of items) {
       const type = it.types.find(t => t.startsWith('image/'));
-      if (type) { const blob = await it.getType(type); return load(new File([blob], 'pasted-image.' + (type.split('/')[1] || 'png'), { type })); }
+      if (!type) continue;
+      try { const blob = await it.getType(type); return load(new File([blob], 'pasted-image.' + (type.split('/')[1] || 'png'), { type })); } catch (_) { /* try next */ }
     }
-    setPaste(false, T_NONE); say('There is no image on the clipboard.');
-  } catch (_) { say('The browser blocked clipboard access. Press Cmd/Ctrl+V instead.', 5000); refreshPaste(false); }
+  }
+  pasteHint();
 }
 pasteBtn.addEventListener('click', pasteFromButton);
-document.addEventListener('paste', e => { // Cmd/Ctrl+V: load an image if there is one, otherwise do nothing
+document.addEventListener('paste', e => { // Cmd/Ctrl+V (also delivers files copied in Finder/Explorer)
   const cd = e.clipboardData; if (!cd) return;
-  let f = [...(cd.files || [])].find(x => x.type.startsWith('image/'));
-  if (!f) { const it = [...(cd.items || [])].find(x => x.kind === 'file' && x.type.startsWith('image/')); f = it && it.getAsFile(); }
-  if (!f) return;
+  let f = [...(cd.files || [])].find(isImageFile);
+  if (!f) { const it = [...(cd.items || [])].find(x => x.kind === 'file' && (/^image\//.test(x.type) || !x.type)); const g = it && it.getAsFile(); if (isImageFile(g)) f = g; }
+  if (!f) return; // nothing we can use: do nothing
   e.preventDefault();
-  load(new File([f], 'pasted-image.' + ((f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')), { type: f.type }));
+  load(f.name ? f : new File([f], 'pasted-image.' + ((f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')), { type: f.type }));
 });
-window.addEventListener('focus', () => refreshPaste(false));
-document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshPaste(false); });
-document.addEventListener('pointerdown', () => refreshPaste(true), { once: true, capture: true });
-refreshPaste(false);
+window.addEventListener('focus', () => refreshPaste());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshPaste(); });
+refreshPaste();
 
 /* ---------- export (full resolution) ---------- */
 async function render(k, ow, oh, f) {
@@ -558,7 +567,7 @@ async function copyResult() {
     }
     const b = $('copy'); b.textContent = 'Copied';
     clearTimeout(copiedTimer); copiedTimer = setTimeout(() => { b.textContent = 'Copy'; }, 1600);
-    say('Copied ' + dims + ' to the clipboard'); refreshPaste(false);
+    say('Copied ' + dims + ' to the clipboard'); refreshPaste();
   } catch (e) {
     say(e && e.name === 'NotAllowedError'
       ? 'The browser blocked copying. Allow clipboard access, or use Download.'
