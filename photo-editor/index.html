@@ -65,6 +65,7 @@ input[type=range]:disabled{opacity:.35}
 <div id="app">
   <div class="bar">
     <button id="open" class="ghost" type="button">Open</button>
+    <button id="paste" class="ghost" type="button" disabled title="Checking clipboard…">Paste</button>
     <div class="info" id="info">Photo Edit</div>
     <button id="reset" class="ghost" type="button" disabled>Reset</button>
   </div>
@@ -425,6 +426,59 @@ const emptyEl = $('empty');
 ['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); emptyEl.classList.remove('over'); }));
 document.addEventListener('drop', e => load(e.dataTransfer.files[0]));
 
+/* ---------- paste (Cmd/Ctrl+V always works; the Paste button only enables when the clipboard has an image) ---------- */
+const pasteBtn = $('paste');
+const T_NONE = 'Copy an image first';
+const T_KEYS = 'This browser cannot preview the clipboard. Press Cmd/Ctrl+V to paste an image.';
+const T_DENIED = 'Clipboard access is blocked. Press Cmd/Ctrl+V to paste an image.';
+const T_PROMPT = 'Copy an image first, or press Cmd/Ctrl+V';
+const setPaste = (on, why) => { pasteBtn.disabled = !on; pasteBtn.title = on ? 'Paste image from clipboard' : why; };
+let permStatus = null, asked = false, checking = false;
+async function refreshPaste(gesture) {
+  if (checking) return;
+  checking = true;
+  try {
+    if (!(navigator.clipboard && navigator.clipboard.read && navigator.permissions && navigator.permissions.query)) return setPaste(false, T_KEYS);
+    let perm;
+    try { perm = await navigator.permissions.query({ name: 'clipboard-read' }); }
+    catch (_) { return setPaste(false, T_KEYS); } // Safari/Firefox: cannot check without a prompt
+    if (!permStatus) { permStatus = perm; perm.onchange = () => refreshPaste(false); }
+    if (perm.state === 'denied') return setPaste(false, T_DENIED);
+    if (perm.state === 'prompt') { // never prompt on load/focus; ask at most once, on the user's first gesture
+      if (!gesture || asked) return setPaste(false, T_PROMPT);
+      asked = true;
+    }
+    try {
+      const items = await navigator.clipboard.read();
+      const has = items.some(i => i.types.some(t => t.startsWith('image/')));
+      setPaste(has, T_NONE);
+    } catch (_) { setPaste(false, perm.state === 'granted' ? T_NONE : T_DENIED); } // e.g. window not focused, or prompt dismissed
+  } finally { checking = false; }
+}
+async function pasteFromButton() {
+  try {
+    const items = await navigator.clipboard.read();
+    for (const it of items) {
+      const type = it.types.find(t => t.startsWith('image/'));
+      if (type) { const blob = await it.getType(type); return load(new File([blob], 'pasted-image.' + (type.split('/')[1] || 'png'), { type })); }
+    }
+    setPaste(false, T_NONE); say('There is no image on the clipboard.');
+  } catch (_) { say('The browser blocked clipboard access. Press Cmd/Ctrl+V instead.', 5000); refreshPaste(false); }
+}
+pasteBtn.addEventListener('click', pasteFromButton);
+document.addEventListener('paste', e => { // Cmd/Ctrl+V: load an image if there is one, otherwise do nothing
+  const cd = e.clipboardData; if (!cd) return;
+  let f = [...(cd.files || [])].find(x => x.type.startsWith('image/'));
+  if (!f) { const it = [...(cd.items || [])].find(x => x.kind === 'file' && x.type.startsWith('image/')); f = it && it.getAsFile(); }
+  if (!f) return;
+  e.preventDefault();
+  load(new File([f], 'pasted-image.' + ((f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')), { type: f.type }));
+});
+window.addEventListener('focus', () => refreshPaste(false));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshPaste(false); });
+document.addEventListener('pointerdown', () => refreshPaste(true), { once: true, capture: true });
+refreshPaste(false);
+
 /* ---------- export (full resolution) ---------- */
 async function render(k, ow, oh, f) {
   const c = document.createElement('canvas');
@@ -504,7 +558,7 @@ async function copyResult() {
     }
     const b = $('copy'); b.textContent = 'Copied';
     clearTimeout(copiedTimer); copiedTimer = setTimeout(() => { b.textContent = 'Copy'; }, 1600);
-    say('Copied ' + dims + ' to the clipboard');
+    say('Copied ' + dims + ' to the clipboard'); refreshPaste(false);
   } catch (e) {
     say(e && e.name === 'NotAllowedError'
       ? 'The browser blocked copying. Allow clipboard access, or use Download.'
