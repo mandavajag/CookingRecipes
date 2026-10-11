@@ -50,7 +50,12 @@ input[type=range]:disabled{opacity:.35}
 .row.actions{justify-content:space-between}
 .row.tools button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px}
 .row.tools svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.row.actions #copy{margin-left:8px}
 .row.actions .primary{flex:1;margin-left:8px}
+#ctx{position:fixed;z-index:20;min-width:170px;background:#2c2c2e;border-radius:12px;padding:4px;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+#ctx[hidden]{display:none}
+#ctx button{display:block;width:100%;text-align:left;background:transparent;border-radius:8px}
+#ctx button:hover,#ctx button:focus-visible{background:#48484a}
 #msg{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(44,44,46,.95);padding:8px 14px;border-radius:18px;max-width:90%;text-align:center;pointer-events:none;opacity:0;transition:opacity .2s}
 #msg.show{opacity:1}
 @media (min-width:700px){.panel{border-radius:16px 16px 0 0}}
@@ -95,9 +100,14 @@ input[type=range]:disabled{opacity:.35}
         <button type="button" data-f="jpeg" aria-pressed="true">JPEG</button>
         <button type="button" data-f="png" aria-pressed="false">PNG</button>
       </div>
+      <button id="copy" type="button" aria-label="Copy edited image to clipboard" title="Copy edited image to clipboard" disabled>Copy</button>
       <button id="download" class="primary" type="button" disabled>Download</button>
     </div>
   </div>
+</div>
+<div id="ctx" role="menu" hidden>
+  <button type="button" role="menuitem" data-a="copy">Copy image</button>
+  <button type="button" role="menuitem" data-a="download">Download</button>
 </div>
 <input id="file" type="file" accept="image/*" hidden>
 <script>
@@ -286,7 +296,7 @@ function moved(S, cur, dx, dy) {
 }
 
 cv.addEventListener('pointerdown', e => {
-  if (!img) return;
+  if (!img || e.button !== 0) return;
   const p = pt(e), h = hit(p);
   if (!h) return;
   cv.setPointerCapture(e.pointerId);
@@ -311,7 +321,7 @@ function updateInfo() {
   info.textContent = img ? `${Math.round(st.crop.r - st.crop.l)} × ${Math.round(st.crop.b - st.crop.t)}` : 'Photo Edit';
 }
 function setEnabled(on) {
-  document.querySelectorAll('#reset,#angle,#chips button,#rot,#flipH,#flipV,#download').forEach(el => el.disabled = !on);
+  document.querySelectorAll('#reset,#angle,#chips button,#rot,#flipH,#flipV,#copy,#download').forEach(el => el.disabled = !on);
 }
 function say(t, ms = 3500) {
   const m = $('msg'); m.textContent = t; m.classList.add('show');
@@ -416,7 +426,7 @@ const emptyEl = $('empty');
 document.addEventListener('drop', e => load(e.dataTransfer.files[0]));
 
 /* ---------- export (full resolution) ---------- */
-async function render(k, ow, oh) {
+async function render(k, ow, oh, f) {
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.round(ow * k)); c.height = Math.max(1, Math.round(oh * k));
   const x = c.getContext('2d');
@@ -430,20 +440,24 @@ async function render(k, ow, oh) {
   x.drawImage(img.src, -img.w0 / 2, -img.h0 / 2);
   x.setTransform(1, 0, 0, 1, 0, 0);
   if (x.getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3] === 0) return null; // browser refused the canvas size
-  if (fmt === 'jpeg') { x.globalCompositeOperation = 'destination-over'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); }
+  if (f === 'jpeg') { x.globalCompositeOperation = 'destination-over'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); }
   return c;
 }
 const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+async function exportCanvas(f) { // the one export path, used by Download and Copy
+  const ow = st.crop.r - st.crop.l, oh = st.crop.b - st.crop.t;
+  let k = Math.min(1, Math.sqrt(120e6 / (ow * oh)), 16384 / Math.max(ow, oh)), canvas = null;
+  for (let i = 0; i < 7 && !canvas; i++, k *= 0.7) {
+    try { canvas = await render(k, ow, oh, f); } catch (_) { canvas = null; }
+  }
+  if (!canvas) throw new Error('canvas');
+  return { canvas, ow, oh };
+}
 async function download() {
   if (!img) return;
   const btn = $('download'); btn.disabled = true; say('Preparing download…', 0);
   try {
-    const ow = st.crop.r - st.crop.l, oh = st.crop.b - st.crop.t;
-    let k = Math.min(1, Math.sqrt(120e6 / (ow * oh)), 16384 / Math.max(ow, oh)), canvas = null;
-    for (let i = 0; i < 7 && !canvas; i++, k *= 0.7) {
-      try { canvas = await render(k, ow, oh); } catch (_) { canvas = null; }
-    }
-    if (!canvas) throw new Error('canvas');
+    const { canvas, ow, oh } = await exportCanvas(fmt);
     const mime = fmt === 'png' ? 'image/png' : 'image/jpeg';
     const blob = await new Promise(res => canvas.toBlob(res, mime, 0.92));
     if (!blob) throw new Error('blob');
@@ -464,6 +478,66 @@ async function download() {
   } finally { btn.disabled = false; }
 }
 $('download').addEventListener('click', download);
+
+/* ---------- copy to clipboard (edited result, PNG, full resolution) ---------- */
+let copying = false, copiedTimer = 0;
+async function copyResult() {
+  if (!img || copying) return;
+  if (!(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem)) {
+    say('This browser cannot copy images. Use Download instead.', 5000); return;
+  }
+  copying = true; say('Copying…', 0);
+  let dims = '';
+  const blobP = exportCanvas('png').then(async ({ canvas }) => {
+    dims = `${canvas.width} × ${canvas.height}`;
+    const b = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    if (!b) throw new Error('blob');
+    return b;
+  });
+  blobP.catch(() => {}); // handled below
+  try {
+    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blobP })]); }
+    catch (e) {
+      if (e && e.name === 'NotAllowedError') throw e;
+      // browsers that do not accept a promise inside ClipboardItem
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': await blobP })]);
+    }
+    const b = $('copy'); b.textContent = 'Copied';
+    clearTimeout(copiedTimer); copiedTimer = setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    say('Copied ' + dims + ' to the clipboard');
+  } catch (e) {
+    say(e && e.name === 'NotAllowedError'
+      ? 'The browser blocked copying. Allow clipboard access, or use Download.'
+      : 'Could not copy this photo. Try Download instead.', 5000);
+  } finally { copying = false; }
+}
+$('copy').addEventListener('click', copyResult);
+document.addEventListener('copy', e => { // Cmd/Ctrl+C or Edit > Copy: copy the edit, unless text is selected
+  if (!img || String(window.getSelection())) return;
+  e.preventDefault(); copyResult();
+});
+
+/* right-click on the picture: a small menu whose Copy image gives the edited result in every browser
+   (the native menu would copy the whole canvas; hold Shift for the native menu) */
+const ctxMenu = $('ctx');
+const closeMenu = () => { ctxMenu.hidden = true; };
+cv.addEventListener('contextmenu', e => {
+  if (!img || e.shiftKey) return;
+  e.preventDefault(); drag = null; grid = 0; schedule();
+  ctxMenu.hidden = false;
+  const x = Math.min(e.clientX, window.innerWidth - ctxMenu.offsetWidth - 8), y = Math.min(e.clientY, window.innerHeight - ctxMenu.offsetHeight - 8);
+  ctxMenu.style.left = Math.max(8, x) + 'px'; ctxMenu.style.top = Math.max(8, y) + 'px';
+  ctxMenu.querySelector('button').focus();
+});
+ctxMenu.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  closeMenu();
+  if (b.dataset.a === 'copy') copyResult(); else download();
+});
+document.addEventListener('pointerdown', e => { if (!ctxMenu.hidden && !ctxMenu.contains(e.target)) closeMenu(); }, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+window.addEventListener('blur', closeMenu);
+window.addEventListener('resize', closeMenu);
 
 /* test hook (read-only helpers used by automated checks) */
 window.__photoEdit = { state: () => ({ m: [...st.m], a: st.a, preset: st.preset, crop: st.crop && { ...st.crop }, w0: img && img.w0, h0: img && img.h0 }) };
