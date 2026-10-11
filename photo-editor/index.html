@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex">
+<title>Photo Edit</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111'/%3E%3Cpath d='M10 4v18h18M4 10h18v18' fill='none' stroke='%23ffd60a' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:#f2f2f7;font:15px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:1100px;margin:0 auto;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button{font:inherit;color:inherit;background:#2c2c2e;border:0;border-radius:10px;min-height:44px;min-width:44px;padding:0 16px;cursor:pointer;touch-action:manipulation}
+button:hover:not(:disabled){background:#3a3a3c}
+button:disabled{opacity:.35;cursor:default}
+button.off{opacity:.45}
+#dbg{position:fixed;left:6px;right:6px;top:56px;z-index:30;background:rgba(0,0,0,.88);border:1px solid #48484a;border-radius:10px;padding:6px;font:11px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#c7f9cc}
+#dbg pre{margin:6px 0 0;white-space:pre-wrap;word-break:break-all;max-height:34vh;overflow:auto}
+#dbg button{font-size:13px;margin-right:6px}
+button:focus-visible,input:focus-visible+span,input[type=range]:focus-visible{outline:2px solid #ffd60a;outline-offset:2px}
+button.primary{background:#ffd60a;color:#000;font-weight:600}
+button.primary:hover:not(:disabled){background:#ffe14d}
+button.ghost{background:transparent;color:#ffd60a}
+button.ghost:hover:not(:disabled){background:#1c1c1e}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 12px}
+.bar .info{flex:1;text-align:center;color:#8e8e93;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stage{position:relative;flex:1;min-height:0;background:#000}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;border:2px dashed transparent;border-radius:16px;margin:12px}
+#empty.over{border-color:#ffd60a;background:#1c1c1e}
+#empty h1{margin:0;font-size:22px;font-weight:600}
+#empty p{margin:0;color:#8e8e93;max-width:30ch}
+#empty button{min-height:50px;padding:0 28px;font-size:17px}
+body.has-img #empty{display:none}
+.panel{background:#1c1c1e;padding:6px 12px 12px;display:flex;flex-direction:column;gap:6px;border-top:1px solid #2c2c2e}
+.row{display:flex;align-items:center;gap:8px}
+.slider{gap:12px}
+.slider label{color:#8e8e93;width:78px;flex:none}
+.slider output{width:56px;text-align:right;font-variant-numeric:tabular-nums;flex:none}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:44px;margin:0;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:#48484a}
+input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:#48484a}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-11.5px;border-radius:50%;background:#ffd60a;border:0}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#ffd60a;border:0}
+input[type=range]:disabled{opacity:.35}
+.chips{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;background:#2c2c2e;border-radius:22px}
+.chips button[aria-pressed=true]{background:#ffd60a;color:#000;font-weight:600}
+.seg{display:flex;background:#2c2c2e;border-radius:10px;padding:2px;flex:none}
+.seg button{background:transparent;min-height:44px;padding:0 12px;border-radius:8px}
+.seg button[aria-pressed=true]{background:#636366;font-weight:600}
+.row.actions{justify-content:space-between}
+.row.tools button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px}
+.row.tools svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.row.actions #copy{margin-left:8px}
+.row.actions .primary{flex:1;margin-left:8px}
+#ctx{position:fixed;z-index:20;min-width:170px;background:#2c2c2e;border-radius:12px;padding:4px;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+#ctx[hidden]{display:none}
+#ctx button{display:block;width:100%;text-align:left;background:transparent;border-radius:8px}
+#ctx button:hover,#ctx button:focus-visible{background:#48484a}
+#msg{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(44,44,46,.95);padding:8px 14px;border-radius:18px;max-width:90%;text-align:center;pointer-events:none;opacity:0;transition:opacity .2s}
+#msg.show{opacity:1}
+@media (min-width:700px){.panel{border-radius:16px 16px 0 0}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="bar">
+    <button id="open" class="ghost" type="button">Open</button>
+    <button id="paste" class="ghost" type="button" title="Paste image from clipboard">Paste</button>
+    <div class="info" id="info">Photo Edit</div>
+    <button id="reset" class="ghost" type="button" disabled>Reset</button>
+  </div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="empty">
+      <h1>Crop and straighten</h1>
+      <p>Pick a photo to edit. It stays on this device and is never uploaded.</p>
+      <p>You can also press <b id="pk">Ctrl+V</b> to paste a photo.</p>
+      <button id="open2" class="primary" type="button">Choose photo</button>
+    </div>
+    <div id="msg" role="status" aria-live="polite"></div>
+  </div>
+  <div class="panel">
+    <div class="row slider">
+      <label for="angle">Straighten</label>
+      <input id="angle" type="range" min="-45" max="45" step="0.1" value="0" disabled>
+      <output id="angleOut" for="angle">0.0°</output>
+    </div>
+    <div class="row chips" id="chips" role="group" aria-label="Aspect ratio">
+      <button type="button" data-p="free" aria-pressed="true" disabled>Free</button>
+      <button type="button" data-p="orig" aria-pressed="false" disabled>Original</button>
+      <button type="button" data-p="1:1" aria-pressed="false" disabled>1:1</button>
+      <button type="button" data-p="4:3" aria-pressed="false" disabled>4:3</button>
+      <button type="button" data-p="16:9" aria-pressed="false" disabled>16:9</button>
+    </div>
+    <div class="row tools">
+      <button id="rot" type="button" aria-label="Rotate 90 degrees left" title="Rotate 90° left" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v5h5"/><path d="M4.6 10A8 8 0 1 1 6 17.5"/></svg><span>Rotate</span></button>
+      <button id="flipH" type="button" aria-label="Mirror horizontal (flip left-right)" title="Mirror horizontal" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6 3 18h6Z"/><path d="M15 6l6 12h-6Z"/><path d="M12 3v18" stroke-dasharray="2 2.5"/></svg><span>Mirror H</span></button>
+      <button id="flipV" type="button" aria-label="Mirror vertical (flip top-bottom)" title="Mirror vertical" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6-6 6 6Z"/><path d="M6 15h12l-6 6Z"/><path d="M3 12h18" stroke-dasharray="2 2.5"/></svg><span>Mirror V</span></button>
+    </div>
+    <div class="row actions">
+      <div class="seg" role="group" aria-label="File format">
+        <button type="button" data-f="jpeg" aria-pressed="true">JPEG</button>
+        <button type="button" data-f="png" aria-pressed="false">PNG</button>
+      </div>
+      <button id="copy" type="button" aria-label="Copy edited image to clipboard" title="Copy edited image to clipboard" disabled>Copy</button>
+      <button id="download" class="primary" type="button" disabled>Download</button>
+    </div>
+  </div>
+</div>
+<div id="ctx" role="menu" hidden>
+  <button type="button" role="menuitem" data-a="copy">Copy image</button>
+  <button type="button" role="menuitem" data-a="download">Download</button>
+</div>
+<input id="file" type="file" accept="image/*" hidden>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
+const slider = $('angle'), angleOut = $('angleOut'), info = $('info');
+const PREVIEW_MAX = 2048;   // working copy size for on-screen editing
+const MIN_BOX = 48;         // smallest crop box on screen, px
+let img = null;             // {src (full-res), prev (preview), w0, h0, name}
+const st = { m: [1, 0, 0, 1], a: 0, preset: 'free', crop: null, want: null }; // m: rotate/flip matrix [a,b,c,d] on screen, a: straighten deg
+const mul = (L, T) => [L[0]*T[0] + L[1]*T[2], L[0]*T[1] + L[1]*T[3], L[2]*T[0] + L[3]*T[2], L[2]*T[1] + L[3]*T[3]];
+const view = { w: 0, h: 0, dpr: 1, vs: 1, cx: 0, cy: 0 };
+let fmt = 'jpeg', grid = 0, drag = null, sliding = false, gridTimer = 0, msgTimer = 0, raf = 0;
+
+/* ---------- geometry (frame coords: origin = image centre, units = full-res px) ---------- */
+const dims = () => (st.m[0] === 0) ? { W: img.h0, H: img.w0 } : { W: img.w0, H: img.h0 };
+const rad = d => d * Math.PI / 180;
+function fits(rc) {
+  const { W, H } = dims(), a = Math.abs(st.a) < 0.01 ? 0 : st.a;
+  const c = Math.cos(rad(a)), s = Math.sin(rad(a)), m = a ? 2 : 0;
+  for (const [x, y] of [[rc.l, rc.t], [rc.r, rc.t], [rc.r, rc.b], [rc.l, rc.b]]) {
+    if (Math.abs(x) > W / 2 + 1e-6 || Math.abs(y) > H / 2 + 1e-6) return false;
+    const u = x * c + y * s, v = -x * s + y * c;
+    if (Math.abs(u) > W / 2 - m + 1e-6 || Math.abs(v) > H / 2 - m + 1e-6) return false;
+  }
+  return true;
+}
+const scaleRect = (q, k) => ({ l: q.l * k, t: q.t * k, r: q.r * k, b: q.b * k });
+const lerpRect = (a, b, t) => ({ l: a.l + (b.l - a.l) * t, t: a.t + (b.t - a.t) * t, r: a.r + (b.r - a.r) * t, b: a.b + (b.b - a.b) * t });
+function shrink(q) { // scale towards the centre until it sits inside the straightened image
+  if (fits(q)) return q;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 28; i++) { const m = (lo + hi) / 2; fits(scaleRect(q, m)) ? lo = m : hi = m; }
+  return scaleRect(q, lo);
+}
+function clampTo(cur, cand) { // largest step from cur towards cand that stays valid
+  if (fits(cand)) return cand;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; fits(lerpRect(cur, cand, m)) ? lo = m : hi = m; }
+  return lerpRect(cur, cand, lo);
+}
+function fullRect() { const { W, H } = dims(); return shrink({ l: -W / 2, t: -H / 2, r: W / 2, b: H / 2 }); }
+function maxRect(ar) { // biggest centred box of aspect ar that fits
+  const { W, H } = dims();
+  let lo = 0, hi = Math.max(W, H);
+  const mk = s => ({ l: -s * ar, r: s * ar, t: -s, b: s });
+  for (let i = 0; i < 34; i++) { const m = (lo + hi) / 2; fits(mk(m)) ? lo = m : hi = m; }
+  return mk(lo);
+}
+function arOf() {
+  const { W, H } = dims(), land = W >= H;
+  switch (st.preset) {
+    case 'orig': return W / H;
+    case '1:1': return 1;
+    case '4:3': return land ? 4 / 3 : 3 / 4;
+    case '16:9': return land ? 16 / 9 : 9 / 16;
+    default: return 0;
+  }
+}
+function applyPreset(p, reset) {
+  st.preset = p;
+  const ar = arOf();
+  const rc = ar ? maxRect(ar) : (reset || !st.crop ? fullRect() : st.crop);
+  st.want = st.crop = rc;
+  document.querySelectorAll('#chips button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === p));
+}
+
+/* ---------- view ---------- */
+function layout() {
+  const r = stage.getBoundingClientRect();
+  view.dpr = Math.min(window.devicePixelRatio || 1, 3);
+  view.w = r.width; view.h = r.height;
+  cv.width = Math.max(1, Math.round(r.width * view.dpr));
+  cv.height = Math.max(1, Math.round(r.height * view.dpr));
+  view.cx = r.width / 2; view.cy = r.height / 2;
+  fitView();
+}
+function fitView() {
+  if (!img) return;
+  const { W, H } = dims(), pad = view.w < 600 ? 16 : 28;
+  view.vs = Math.max(0.0001, Math.min((view.w - 2 * pad) / W, (view.h - 2 * pad) / H));
+  draw();
+}
+const scr = () => { const c = st.crop, v = view; return { l: v.cx + c.l * v.vs, t: v.cy + c.t * v.vs, r: v.cx + c.r * v.vs, b: v.cy + c.b * v.vs }; };
+const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); };
+
+function draw() {
+  ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+  ctx.clearRect(0, 0, view.w, view.h);
+  if (!img) return;
+  const { W, H } = dims(), vs = view.vs;
+  ctx.save();
+  ctx.translate(view.cx, view.cy);
+  ctx.beginPath(); ctx.rect(-W / 2 * vs, -H / 2 * vs, W * vs, H * vs); ctx.clip();
+  ctx.rotate(rad(st.a));
+  ctx.transform(st.m[0], st.m[2], st.m[1], st.m[3], 0, 0);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img.prev, -img.w0 / 2 * vs, -img.h0 / 2 * vs, img.w0 * vs, img.h0 * vs);
+  ctx.restore();
+
+  const c = scr(), w = c.r - c.l, h = c.b - c.t;
+  ctx.fillStyle = 'rgba(0,0,0,.6)';
+  ctx.beginPath(); ctx.rect(0, 0, view.w, view.h); ctx.rect(c.l, c.t, w, h); ctx.fill('evenodd');
+
+  if (grid) { // thin grid: thirds while dragging the box, fine grid while straightening
+    const n = grid === 2 ? 9 : 3;
+    ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let i = 1; i < n; i++) {
+      const x = Math.round(c.l + w * i / n) + .5, y = Math.round(c.t + h * i / n) + .5;
+      ctx.moveTo(x, c.t); ctx.lineTo(x, c.b); ctx.moveTo(c.l, y); ctx.lineTo(c.r, y);
+    }
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1;
+  ctx.strokeRect(c.l + .5, c.t + .5, w - 1, h - 1);
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.lineCap = 'butt'; ctx.beginPath();
+  const L = Math.min(20, w / 3, h / 3), o = 1.5;
+  ctx.moveTo(c.l - o, c.t + L); ctx.lineTo(c.l - o, c.t - o); ctx.lineTo(c.l + L, c.t - o);
+  ctx.moveTo(c.r + o, c.t + L); ctx.lineTo(c.r + o, c.t - o); ctx.lineTo(c.r - L, c.t - o);
+  ctx.moveTo(c.l - o, c.b - L); ctx.lineTo(c.l - o, c.b + o); ctx.lineTo(c.l + L, c.b + o);
+  ctx.moveTo(c.r + o, c.b - L); ctx.lineTo(c.r + o, c.b + o); ctx.lineTo(c.r - L, c.b + o);
+  if (w > 110 && h > 110) { // edge grips
+    const mx = (c.l + c.r) / 2, my = (c.t + c.b) / 2;
+    ctx.moveTo(mx - 14, c.t - o); ctx.lineTo(mx + 14, c.t - o);
+    ctx.moveTo(mx - 14, c.b + o); ctx.lineTo(mx + 14, c.b + o);
+    ctx.moveTo(c.l - o, my - 14); ctx.lineTo(c.l - o, my + 14);
+    ctx.moveTo(c.r + o, my - 14); ctx.lineTo(c.r + o, my + 14);
+  }
+  ctx.stroke();
+}
+
+/* ---------- crop interaction ---------- */
+const pt = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+const toFrame = p => ({ x: (p.x - view.cx) / view.vs, y: (p.y - view.cy) / view.vs });
+function hit(p) {
+  if (!img) return null;
+  const c = scr(), w = c.r - c.l, h = c.b - c.t, m = Math.min(w, h);
+  const cr = Math.min(30, m / 2.2), band = Math.min(24, m / 3);
+  let best = null, bd = 1e9;
+  for (const [k, x, y] of [['tl', c.l, c.t], ['tr', c.r, c.t], ['bl', c.l, c.b], ['br', c.r, c.b]]) {
+    const d = Math.hypot(p.x - x, p.y - y);
+    if (d <= cr && d < bd) { best = k; bd = d; }
+  }
+  if (best) return best;
+  const inX = p.x >= c.l - band && p.x <= c.r + band, inY = p.y >= c.t - band && p.y <= c.b + band;
+  for (const [k, d, ok] of [['t', Math.abs(p.y - c.t), inX], ['b', Math.abs(p.y - c.b), inX], ['l', Math.abs(p.x - c.l), inY], ['r', Math.abs(p.x - c.r), inY]]) {
+    if (ok && d <= band && d < bd) { best = k; bd = d; }
+  }
+  if (best) return best;
+  return (p.x > c.l && p.x < c.r && p.y > c.t && p.y < c.b) ? 'move' : null;
+}
+const CURSORS = { tl: 'nwse-resize', br: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', l: 'ew-resize', r: 'ew-resize', t: 'ns-resize', b: 'ns-resize', move: 'move' };
+
+function resized(h, S, cur, dx, dy) {
+  const ar = arOf(), minF = MIN_BOX / view.vs, q = { ...S };
+  const hx = h.includes('l') ? -1 : h.includes('r') ? 1 : 0, hy = h.includes('t') ? -1 : h.includes('b') ? 1 : 0;
+  if (hx < 0) q.l = S.l + dx; if (hx > 0) q.r = S.r + dx;
+  if (hy < 0) q.t = S.t + dy; if (hy > 0) q.b = S.b + dy;
+  let w = q.r - q.l, hh = q.b - q.t;
+  if (!ar) {
+    if (w < minF) { if (hx < 0) q.l = q.r - minF; else if (hx > 0) q.r = q.l + minF; }
+    if (hh < minF) { if (hy < 0) q.t = q.b - minF; else if (hy > 0) q.b = q.t + minF; }
+  } else {
+    if (hx && hy) { w = Math.max(w, hh * ar); hh = w / ar; }
+    else if (hx) { hh = w / ar; } else { w = hh * ar; }
+    if (w < minF * Math.max(1, ar) || hh < minF * Math.max(1, 1 / ar)) return cur;
+    if (hx && hy) {
+      if (hx < 0) q.l = q.r - w; else q.r = q.l + w;
+      if (hy < 0) q.t = q.b - hh; else q.b = q.t + hh;
+    } else if (hx) {
+      const cy = (S.t + S.b) / 2; q.t = cy - hh / 2; q.b = cy + hh / 2;
+      if (hx < 0) q.l = q.r - w; else q.r = q.l + w;
+    } else {
+      const cx = (S.l + S.r) / 2; q.l = cx - w / 2; q.r = cx + w / 2;
+      if (hy < 0) q.t = q.b - hh; else q.b = q.t + hh;
+    }
+  }
+  return clampTo(cur, q);
+}
+function moved(S, cur, dx, dy) {
+  const tl = S.l + dx, tt = S.t + dy, w = S.r - S.l, h = S.b - S.t;
+  const r1 = clampTo(cur, { l: tl, r: tl + w, t: cur.t, b: cur.b });
+  return clampTo(r1, { l: r1.l, r: r1.r, t: tt, b: tt + h });
+}
+
+cv.addEventListener('pointerdown', e => {
+  if (!img || e.button !== 0) return;
+  const p = pt(e), h = hit(p);
+  if (!h) return;
+  cv.setPointerCapture(e.pointerId);
+  drag = { h, S: { ...st.crop }, p0: toFrame(p), id: e.pointerId };
+  grid = 1; schedule(); e.preventDefault();
+});
+cv.addEventListener('pointermove', e => {
+  const p = pt(e);
+  if (!drag) { cv.style.cursor = CURSORS[hit(p)] || 'default'; return; }
+  if (e.pointerId !== drag.id) return;
+  const f = toFrame(p), dx = f.x - drag.p0.x, dy = f.y - drag.p0.y;
+  st.crop = drag.h === 'move' ? moved(drag.S, st.crop, dx, dy) : resized(drag.h, drag.S, st.crop, dx, dy);
+  st.want = st.crop;
+  updateInfo(); schedule();
+});
+const endDrag = e => { if (drag && e.pointerId === drag.id) { drag = null; grid = 0; schedule(); } };
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+/* ---------- controls ---------- */
+function updateInfo() {
+  info.textContent = img ? `${Math.round(st.crop.r - st.crop.l)} × ${Math.round(st.crop.b - st.crop.t)}` : 'Photo Edit';
+}
+function setEnabled(on) {
+  document.querySelectorAll('#reset,#angle,#chips button,#rot,#flipH,#flipV,#copy,#download').forEach(el => el.disabled = !on);
+}
+function say(t, ms = 3500) {
+  const m = $('msg'); m.textContent = t; m.classList.add('show');
+  clearTimeout(msgTimer); if (ms) msgTimer = setTimeout(() => m.classList.remove('show'), ms);
+}
+function setAngle(v) {
+  st.a = v; slider.value = v; angleOut.textContent = v.toFixed(1) + '°';
+  st.crop = shrink(st.want); updateInfo(); schedule();
+}
+slider.addEventListener('input', () => {
+  let v = parseFloat(slider.value) || 0;
+  if (Math.abs(v) < 0.15) v = 0;
+  setAngle(v);
+  grid = 2; clearTimeout(gridTimer);
+  gridTimer = setTimeout(() => { if (!sliding) { grid = 0; schedule(); } }, 600);
+});
+slider.addEventListener('pointerdown', () => { sliding = true; });
+const endSlide = () => { sliding = false; grid = 0; schedule(); };
+slider.addEventListener('pointerup', endSlide);
+slider.addEventListener('pointercancel', endSlide);
+slider.addEventListener('change', endSlide);
+
+$('chips').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !img) return;
+  applyPreset(b.dataset.p, false); updateInfo(); schedule();
+});
+$('rot').addEventListener('click', () => {
+  if (!img) return;
+  st.m = mul([0, 1, -1, 0], st.m); // 90° counter-clockwise on screen, like the Photos app
+  applyPreset(st.preset, true); fitView(); updateInfo();
+});
+function mirror(axis) {
+  if (!img) return;
+  st.m = mul(axis === 'h' ? [-1, 0, 0, 1] : [1, 0, 0, -1], st.m);
+  const f = q => axis === 'h' ? { l: -q.r, t: q.t, r: -q.l, b: q.b } : { l: q.l, t: -q.b, r: q.r, b: -q.t };
+  st.a = st.a ? -st.a : 0; // a mirrored picture tilts the other way
+  slider.value = st.a; angleOut.textContent = st.a.toFixed(1) + '°';
+  st.want = f(st.want); st.crop = shrink(f(st.crop));
+  updateInfo(); schedule();
+}
+$('flipH').addEventListener('click', () => mirror('h'));
+$('flipV').addEventListener('click', () => mirror('v'));
+function reset() {
+  st.m = [1, 0, 0, 1]; st.a = 0; slider.value = 0; angleOut.textContent = '0.0°';
+  applyPreset('free', true); fitView(); updateInfo();
+}
+$('reset').addEventListener('click', () => img && reset());
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  fmt = b.dataset.f;
+  document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+}));
+new ResizeObserver(layout).observe(stage);
+window.addEventListener('orientationchange', () => setTimeout(layout, 250));
+
+/* ---------- load ---------- */
+function downscale(src, w, h, tw, th) { // step-halving keeps big photos crisp
+  let cur = src, cw = w, ch = h;
+  while (cw / 2 > tw) {
+    const nw = Math.ceil(cw / 2), nh = Math.ceil(ch / 2), c = document.createElement('canvas');
+    c.width = nw; c.height = nh;
+    const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(cur, 0, 0, nw, nh);
+    cur = c; cw = nw; ch = nh;
+  }
+  const out = document.createElement('canvas'); out.width = tw; out.height = th;
+  const x = out.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(cur, 0, 0, tw, th);
+  return out;
+}
+async function decode(file) {
+  try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } // applies EXIF orientation
+  catch (_) { /* older browsers: an <img> applies EXIF itself */ }
+  const url = URL.createObjectURL(file), im = new Image();
+  try {
+    im.src = url; await im.decode();
+    const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+    c.getContext('2d').drawImage(im, 0, 0);
+    return c;
+  } finally { URL.revokeObjectURL(url); }
+}
+async function load(file) {
+  if (!file) return;
+  say('Loading…', 0);
+  let src;
+  try { src = await decode(file); }
+  catch (_) { say('Could not open that file. Try a JPEG, PNG or WebP.'); return; }
+  const w0 = src.width, h0 = src.height;
+  if (!w0 || !h0) { say('Could not open that file.'); return; }
+  const k = Math.min(1, PREVIEW_MAX / Math.max(w0, h0));
+  const prev = k < 1 ? downscale(src, w0, h0, Math.max(1, Math.round(w0 * k)), Math.max(1, Math.round(h0 * k))) : src;
+  if (img && img.src.close) img.src.close();
+  img = { src, prev, w0, h0, name: (file.name || 'photo').replace(/\.[^.]+$/, '') };
+  document.body.classList.add('has-img');
+  setEnabled(true);
+  reset(); layout();
+  say(`${w0} × ${h0}${k < 1 ? ' (preview is reduced, export is full size)' : ''}`);
+}
+const fileIn = $('file');
+$('open').onclick = $('open2').onclick = () => fileIn.click();
+fileIn.addEventListener('change', () => { load(fileIn.files[0]); fileIn.value = ''; });
+const emptyEl = $('empty');
+['dragenter', 'dragover'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); emptyEl.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); emptyEl.classList.remove('over'); }));
+document.addEventListener('drop', e => load(e.dataTransfer.files[0]));
+
+/* ---------- paste ----------
+   The Paste button is never truly disabled. It is dimmed only after a readable clipboard was seen to hold no image;
+   in every unknown state (no permission, blocked, Safari/Firefox, empty or unreadable clipboard, copied files) it stays normal.
+   Cmd/Ctrl+V always works, wherever focus is. Add ?debug=1 to the URL to see what the clipboard exposes. */
+const plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '';
+const PASTE_KEY = /mac|iphone|ipad|ipod/i.test(plat) ? 'Cmd+V' : 'Ctrl+V';
+const pasteBtn = $('paste');
+const T_OK = `Paste image from clipboard (or press ${PASTE_KEY})`;
+const T_NONE = `Clipboard has no image. Copy an image first, then click here or press ${PASTE_KEY}.`;
+const HINT = `Press ${PASTE_KEY} to paste the image or file you copied`;
+const IMG_EXT = /\.(png|jpe?g|gif|webp|avif|bmp|tiff?|heic|heif)$/i;
+const isImageFile = f => !!f && (/^image\//.test(f.type) || (!f.type && IMG_EXT.test(f.name || '')));
+const setPaste = (on, why) => {
+  pasteBtn.setAttribute('aria-disabled', String(!on)); pasteBtn.classList.toggle('off', !on); pasteBtn.title = on ? T_OK : why;
+};
+const pk = $('pk'); if (pk) pk.textContent = PASTE_KEY;
+
+/* debug panel (?debug=1) */
+const DEBUG = /[?&]debug=1(&|$)/.test(location.search), dlines = [];
+let dpre = null;
+function dlog(m) { if (!DEBUG) return; dlines.push(new Date().toLocaleTimeString() + ' ' + m); if (dlines.length > 60) dlines.shift(); dpre.textContent = dlines.join('\n'); dpre.scrollTop = 1e9; }
+async function describe(items) {
+  if (!items.length) return 'read() returned 0 items';
+  const out = [];
+  for (const it of items) {
+    const parts = [];
+    for (const t of it.types) {
+      let extra = '';
+      try { if (t === 'text/plain' || t === 'text/html') { const x = await (await it.getType(t)).text(); extra = ` (${x.length} chars: ${JSON.stringify(x.slice(0, 60))})`; } else { extra = ` (${(await it.getType(t)).size} bytes)`; } } catch (e) { extra = ' (unreadable)'; }
+      parts.push(t + extra);
+    }
+    out.push('[' + parts.join(', ') + ']');
+  }
+  return 'read() items: ' + out.join(' ');
+}
+if (DEBUG) {
+  const d = document.createElement('div'); d.id = 'dbg';
+  d.innerHTML = '<div><button type="button" id="dbgRead">Read clipboard</button><button type="button" id="dbgClear">Clear</button></div><pre></pre>';
+  document.body.appendChild(d); dpre = d.querySelector('pre');
+  d.querySelector('#dbgRead').onclick = async () => { try { dlog(await describe(await navigator.clipboard.read())); } catch (e) { dlog('read() failed: ' + e.name + ': ' + e.message); } };
+  d.querySelector('#dbgClear').onclick = () => { dlines.length = 0; dpre.textContent = ''; };
+  dlog(`platform="${plat}" key=${PASTE_KEY} secure=${window.isSecureContext} clipboard.read=${!!(navigator.clipboard && navigator.clipboard.read)} permissions=${!!(navigator.permissions && navigator.permissions.query)}`);
+}
+
+const looksLikeFile = t => t.split(/\r?\n/).some(l => /^\s*(file:\/\/|\/|~\/|[A-Za-z]:\\)/.test(l) || IMG_EXT.test(l.trim()));
+async function clipboardHasPasteable(items) { // false only when sure there is nothing to paste
+  if (!items.length) return true; // empty or unreadable formats (copied files often look like this): unknown
+  for (const it of items) {
+    if (it.types.some(t => t.startsWith('image/'))) return true;
+    if (it.types.some(t => t !== 'text/plain' && t !== 'text/html')) return true; // file-like or unknown format
+    if (it.types.includes('text/html') && /<img\b/i.test(await (await it.getType('text/html')).text())) return true;
+    if (it.types.includes('text/plain') && looksLikeFile(await (await it.getType('text/plain')).text())) return true; // a copied file's path or name
+  }
+  return false;
+}
+let permStatus = null, checking = false;
+async function refreshPaste() { // passive check; only reads when permission is already granted, so it never prompts
+  if (checking) return;
+  checking = true;
+  try {
+    if (!(navigator.clipboard && navigator.clipboard.read && navigator.permissions && navigator.permissions.query)) { setPaste(true); dlog('check: API unavailable -> enabled'); return; }
+    let perm;
+    try { perm = await navigator.permissions.query({ name: 'clipboard-read' }); } catch (e) { setPaste(true); dlog('check: permissions.query failed (' + e.name + ') -> enabled'); return; } // Safari/Firefox
+    if (!permStatus) { permStatus = perm; perm.onchange = () => refreshPaste(); }
+    if (perm.state !== 'granted') { setPaste(true); dlog('check: permission=' + perm.state + ' -> enabled (cannot look)'); return; }
+    let items;
+    try { items = await navigator.clipboard.read(); }
+    catch (e) { setPaste(true); dlog('check: read() failed: ' + e.name + ': ' + e.message + ' -> enabled'); return; } // never latch on an error
+    const ok = await clipboardHasPasteable(items);
+    setPaste(ok, T_NONE);
+    if (DEBUG) dlog('check: ' + await describe(items) + ' -> ' + (ok ? 'enabled' : 'dimmed (no image)'));
+  } catch (e) { setPaste(true); dlog('check error: ' + e); }
+  finally { checking = false; }
+}
+let handled = 0, pasteTargetEl = null;
+function pasteTarget() {
+  if (!pasteTargetEl) {
+    pasteTargetEl = document.createElement('div'); pasteTargetEl.contentEditable = 'true'; pasteTargetEl.setAttribute('aria-hidden', 'true');
+    pasteTargetEl.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0;overflow:hidden';
+    document.body.appendChild(pasteTargetEl);
+  }
+  return pasteTargetEl;
+}
+async function pasteFromButton() {
+  dlog('Paste clicked');
+  let items = null;
+  try { if (navigator.clipboard && navigator.clipboard.read) { items = await navigator.clipboard.read(); if (DEBUG) dlog(await describe(items)); } }
+  catch (e) { dlog('read() failed: ' + e.name + ': ' + e.message); } // denied or unavailable
+  if (items) {
+    for (const it of items) {
+      const type = it.types.find(t => t.startsWith('image/'));
+      if (!type) continue;
+      try { const blob = await it.getType(type); return load(new File([blob], 'pasted-image.' + (type.split('/')[1] || 'png'), { type })); } catch (_) { /* try next */ }
+    }
+  }
+  // nothing loadable: try a scripted paste (browsers usually refuse it; harmless), then tell the user what works
+  const before = handled;
+  if (!matchMedia('(pointer: coarse)').matches) {
+    try { pasteTarget().focus(); dlog('execCommand(paste) -> ' + document.execCommand('paste')); } catch (e) { dlog('execCommand(paste) threw ' + e.name); }
+  }
+  if (pasteTargetEl) pasteTargetEl.blur();
+  if (handled === before) { say(HINT, 6000); pasteBtn.blur(); window.focus(); }
+}
+pasteBtn.addEventListener('click', pasteFromButton);
+const seen = new WeakSet();
+function onPaste(e) { // Cmd/Ctrl+V, wherever focus is (also delivers files copied in Finder/Explorer)
+  if (seen.has(e)) return; seen.add(e);
+  const cd = e.clipboardData;
+  if (DEBUG) dlog(`paste event on <${(e.target && e.target.tagName || '?').toLowerCase()}>: ` + (cd
+    ? `types=[${[...(cd.types || [])]}] files=[${[...(cd.files || [])].map(f => `${f.name}|${f.type}|${f.size}`)}] items=[${[...(cd.items || [])].map(i => i.kind + ':' + i.type)}]`
+    : 'no clipboardData'));
+  if (!cd) return;
+  let f = [...(cd.files || [])].find(isImageFile);
+  if (!f) { const it = [...(cd.items || [])].find(x => x.kind === 'file' && (/^image\//.test(x.type) || !x.type)); const g = it && it.getAsFile(); if (isImageFile(g)) f = g; }
+  if (!f) { dlog('paste: no image file found, ignored'); return; } // nothing we can use: do nothing
+  e.preventDefault(); handled++;
+  dlog(`paste: loading ${f.name || '(unnamed)'} ${f.type}`);
+  load(f.name ? f : new File([f], 'pasted-image.' + ((f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')), { type: f.type }));
+}
+window.addEventListener('paste', onPaste, true);
+document.addEventListener('paste', onPaste, true);
+window.addEventListener('focus', () => refreshPaste());
+window.addEventListener('pageshow', () => refreshPaste());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshPaste(); });
+document.addEventListener('pointerdown', e => { if (e.target !== cv) refreshPaste(); }, true);
+setPaste(true);
+refreshPaste();
+
+/* ---------- export (full resolution) ---------- */
+async function render(k, ow, oh, f) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(ow * k)); c.height = Math.max(1, Math.round(oh * k));
+  const x = c.getContext('2d');
+  if (!x) return null;
+  const q = st.crop;
+  x.imageSmoothingQuality = 'high';
+  x.scale(c.width / ow, c.height / oh);
+  x.translate(ow / 2 - (q.l + q.r) / 2, oh / 2 - (q.t + q.b) / 2);
+  x.rotate(rad(st.a));
+  x.transform(st.m[0], st.m[2], st.m[1], st.m[3], 0, 0);
+  x.drawImage(img.src, -img.w0 / 2, -img.h0 / 2);
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  if (x.getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3] === 0) return null; // browser refused the canvas size
+  if (f === 'jpeg') { x.globalCompositeOperation = 'destination-over'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); }
+  return c;
+}
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+async function exportCanvas(f) { // the one export path, used by Download and Copy
+  const ow = st.crop.r - st.crop.l, oh = st.crop.b - st.crop.t;
+  let k = Math.min(1, Math.sqrt(120e6 / (ow * oh)), 16384 / Math.max(ow, oh)), canvas = null;
+  for (let i = 0; i < 7 && !canvas; i++, k *= 0.7) {
+    try { canvas = await render(k, ow, oh, f); } catch (_) { canvas = null; }
+  }
+  if (!canvas) throw new Error('canvas');
+  return { canvas, ow, oh };
+}
+async function download() {
+  if (!img) return;
+  const btn = $('download'); btn.disabled = true; say('Preparing download…', 0);
+  try {
+    const { canvas, ow, oh } = await exportCanvas(fmt);
+    const mime = fmt === 'png' ? 'image/png' : 'image/jpeg';
+    const blob = await new Promise(res => canvas.toBlob(res, mime, 0.92));
+    if (!blob) throw new Error('blob');
+    const name = `${img.name}-edited.${fmt === 'png' ? 'png' : 'jpg'}`;
+    const note = `${canvas.width} × ${canvas.height}` + (canvas.width < Math.round(ow) - 1 ? ' (reduced: browser size limit)' : '');
+    const file = new File([blob], name, { type: mime });
+    if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); say('Downloaded ' + note); return; }
+      catch (e) { if (e && e.name === 'AbortError') { say('', 1); return; } /* otherwise fall back to a download */ }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 20000);
+    say('Downloaded ' + note);
+  } catch (_) {
+    say('Could not export this photo. Try a smaller crop or JPEG.');
+  } finally { btn.disabled = false; }
+}
+$('download').addEventListener('click', download);
+
+/* ---------- copy to clipboard (edited result, PNG, full resolution) ---------- */
+let copying = false, copiedTimer = 0;
+async function copyResult() {
+  if (!img || copying) return;
+  if (!(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem)) {
+    say('This browser cannot copy images. Use Download instead.', 5000); return;
+  }
+  copying = true; say('Copying…', 0);
+  let dims = '';
+  const blobP = exportCanvas('png').then(async ({ canvas }) => {
+    dims = `${canvas.width} × ${canvas.height}`;
+    const b = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    if (!b) throw new Error('blob');
+    return b;
+  });
+  blobP.catch(() => {}); // handled below
+  try {
+    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blobP })]); }
+    catch (e) {
+      if (e && e.name === 'NotAllowedError') throw e;
+      // browsers that do not accept a promise inside ClipboardItem
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': await blobP })]);
+    }
+    const b = $('copy'); b.textContent = 'Copied';
+    clearTimeout(copiedTimer); copiedTimer = setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    say('Copied ' + dims + ' to the clipboard'); refreshPaste();
+  } catch (e) {
+    say(e && e.name === 'NotAllowedError'
+      ? 'The browser blocked copying. Allow clipboard access, or use Download.'
+      : 'Could not copy this photo. Try Download instead.', 5000);
+  } finally { copying = false; }
+}
+$('copy').addEventListener('click', copyResult);
+document.addEventListener('copy', e => { // Cmd/Ctrl+C or Edit > Copy: copy the edit, unless text is selected
+  if (!img || String(window.getSelection())) return;
+  e.preventDefault(); copyResult();
+});
+
+/* right-click on the picture: a small menu whose Copy image gives the edited result in every browser
+   (the native menu would copy the whole canvas; hold Shift for the native menu) */
+const ctxMenu = $('ctx');
+const closeMenu = () => { ctxMenu.hidden = true; };
+cv.addEventListener('contextmenu', e => {
+  if (!img || e.shiftKey) return;
+  e.preventDefault(); drag = null; grid = 0; schedule();
+  ctxMenu.hidden = false;
+  const x = Math.min(e.clientX, window.innerWidth - ctxMenu.offsetWidth - 8), y = Math.min(e.clientY, window.innerHeight - ctxMenu.offsetHeight - 8);
+  ctxMenu.style.left = Math.max(8, x) + 'px'; ctxMenu.style.top = Math.max(8, y) + 'px';
+  ctxMenu.querySelector('button').focus();
+});
+ctxMenu.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  closeMenu();
+  if (b.dataset.a === 'copy') copyResult(); else download();
+});
+document.addEventListener('pointerdown', e => { if (!ctxMenu.hidden && !ctxMenu.contains(e.target)) closeMenu(); }, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+window.addEventListener('blur', closeMenu);
+window.addEventListener('resize', closeMenu);
+
+/* test hook (read-only helpers used by automated checks) */
+window.__photoEdit = { state: () => ({ m: [...st.m], a: st.a, preset: st.preset, crop: st.crop && { ...st.crop }, w0: img && img.w0, h0: img && img.h0 }) };
+
+layout();
+})();
+</script>
+</body>
+</html>
